@@ -12,6 +12,10 @@ import { isRelatedToAstar } from '@subwallet/extension-web-ui/utils';
 import BigN from 'bignumber.js';
 import { useMemo } from 'react';
 
+interface YieldGroupInfoExtra extends YieldGroupInfo {
+  checkNativeStakingGroup: boolean
+}
+
 function calculateTotalValueStaked (poolInfo: YieldPoolInfo, assetRegistry: Record<string, _ChainAsset>, priceMap: Record<string, number>) {
   const asset = assetRegistry[poolInfo.metadata.inputAsset];
   const tvl = poolInfo.statistic?.tvl;
@@ -37,7 +41,7 @@ const useYieldGroupInfo = (): YieldGroupInfo[] => {
   const { priceMap } = useSelector((state) => state.price);
 
   return useMemo(() => {
-    const result: Record<string, YieldGroupInfo> = {};
+    const result: Record<string, YieldGroupInfoExtra> = {};
 
     for (const pool of Object.values(poolInfoMap)) {
       const chain = pool.chain;
@@ -78,11 +82,12 @@ const useYieldGroupInfo = (): YieldGroupInfo[] => {
           exists.isTestnet = exists.isTestnet || chainInfo.isTestnet;
           exists.poolSlugs.push(pool.slug);
 
-          if (_STAKING_CHAIN_GROUP.relay.includes(chain)) {
+          if (_STAKING_CHAIN_GROUP.relay.includes(chain) && !exists.checkNativeStakingGroup) {
             if (pool.type === YieldPoolType.NATIVE_STAKING) {
               exists.totalValueStaked = calculateTotalValueStaked(pool, assetRegistry, priceMap);
+              exists.checkNativeStakingGroup = true;
             }
-          } else {
+          } else if (!exists.checkNativeStakingGroup) {
             exists.totalValueStaked = exists.totalValueStaked.plus(calculateTotalValueStaked(pool, assetRegistry, priceMap));
           }
         } else {
@@ -124,7 +129,8 @@ const useYieldGroupInfo = (): YieldGroupInfo[] => {
             totalValueStaked: (_STAKING_CHAIN_GROUP.relay.includes(chain) && pool.type !== YieldPoolType.NATIVE_STAKING)
               ? BN_ZERO
               : calculateTotalValueStaked(pool, assetRegistry, priceMap),
-            minJoin: pool.statistic?.earningThreshold?.join
+            minJoin: pool.statistic?.earningThreshold?.join,
+            checkNativeStakingGroup: false
           };
         }
       }
