@@ -10,7 +10,13 @@ import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/
 import { _STAKING_CHAIN_GROUP, MANTA_MIN_DELEGATION, MANTA_VALIDATOR_POINTS_PER_BLOCK } from '@subwallet/extension-base/services/earning-service/constants';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { BaseYieldPositionInfo, CollatorExtraInfo, EarningStatus, NativeYieldPoolInfo, PalletParachainStakingDelegationRequestsScheduledRequest, PalletParachainStakingDelegator, ParachainStakingCandidateMetadata, StakeCancelWithdrawalParams, SubmitJoinNativeStaking, TransactionData, UnstakingStatus, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
-import { balanceFormatter, formatNumber, parseRawNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import {
+  balanceFormatter,
+  convertToPrimitives,
+  formatNumber,
+  parseRawNumber,
+  reformatAddress
+} from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
 
 import { SubmittableExtrinsic } from '@polkadot/api/types';
@@ -198,7 +204,7 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
     let bnTotalUnstaking = BN_ZERO;
 
     const _roundInfo = await substrateApi.api.query.parachainStaking.round();
-    const roundInfo = _roundInfo.toPrimitive() as Record<string, number>;
+    const roundInfo = convertToPrimitives(_roundInfo) as Record<string, number>;
     const currentRound = roundInfo.current;
 
     await Promise.all(delegatorState.delegations.map(async (delegation) => {
@@ -208,9 +214,9 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
         substrateApi.api.query.parachainStaking.candidateInfo(delegation.owner)
       ]);
 
-      const collatorInfo = _collatorInfo.toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+      const collatorInfo = convertToPrimitives(_collatorInfo) as unknown as ParachainStakingCandidateMetadata;
       const minDelegation = collatorInfo?.lowestTopDelegationAmount.toString();
-      const delegationScheduledRequests = _delegationScheduledRequests.toPrimitive() as unknown as PalletParachainStakingDelegationRequestsScheduledRequest[];
+      const delegationScheduledRequests = convertToPrimitives(_delegationScheduledRequests) as unknown as PalletParachainStakingDelegationRequestsScheduledRequest[];
 
       let hasUnstaking = false;
       let delegationStatus: EarningStatus = EarningStatus.NOT_EARNING;
@@ -266,7 +272,7 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
 
     // await Promise.all(nominationList.map(async (nomination) => {
     //   const _collatorInfo = await substrateApi.api.query.parachainStaking.candidateInfo(nomination.validatorAddress);
-    //   const collatorInfo = _collatorInfo.toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+    //   const collatorInfo = convertToPrimitives(_collatorInfo) as unknown as ParachainStakingCandidateMetadata;
     //
     //   nomination.validatorMinStake = collatorInfo.lowestTopDelegationAmount.toString();
     // }));
@@ -306,7 +312,7 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
 
       if (ledgers) {
         await Promise.all(ledgers.map(async (_delegatorState, i) => {
-          const delegatorState = _delegatorState.toPrimitive() as unknown as PalletParachainStakingDelegator;
+          const delegatorState = convertToPrimitives(_delegatorState) as unknown as PalletParachainStakingDelegator;
           const owner = reformatAddress(useAddresses[i], 42);
 
           if (delegatorState) {
@@ -366,16 +372,16 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
       ]);
 
       // noted: Annual Inflation = Total Issuance * Annual Inflation Percent
-      const round = _round.toPrimitive() as unknown as PalletParachainStakingRoundInfo;
+      const round = convertToPrimitives(_round) as unknown as PalletParachainStakingRoundInfo;
       const totalIssuance = _totalIssuance.toString();
       const inflationConfig = _inflationConfig.toHuman() as unknown as PalletParachainStakingInflationInflationInfo;
       const annualInflationPercent = parseFloat(inflationConfig.annual.ideal.slice(0, -1)) / 100;
       const bnAnnualInflation = new BigN(totalIssuance).multipliedBy(annualInflationPercent);
 
       // noted: allCollatorsPool -> all candidate collators; selectedCollators -> candidate collators selected in current round
-      const allCollatorsPoolInfo = _allCollatorsPool.toPrimitive() as unknown as PalletParachainStakingSetOrderedSet[];
+      const allCollatorsPoolInfo = convertToPrimitives(_allCollatorsPool) as unknown as PalletParachainStakingSetOrderedSet[];
       const allCollatorsPool = allCollatorsPoolInfo.map((collator) => collator.owner.toString());
-      const selectedCollators = _selectedCollators.toPrimitive() as string[];
+      const selectedCollators = convertToPrimitives(_selectedCollators) as string[];
       const totalActiveCollators = selectedCollators.length;
 
       const bnCollatorExpectedBlocksPerRound = new BigN(round.length).dividedBy(allCollatorsPool.length);
@@ -390,7 +396,7 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
         const collatorAddress = _collatorAddress[0];
 
         if (allCollatorsPool.includes(collatorAddress)) {
-          const collatorInfo = collator[1].toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+          const collatorInfo = convertToPrimitives(collator[1]) as unknown as ParachainStakingCandidateMetadata;
 
           const bnTotalStake = new BN(collatorInfo.totalCounted);
           const bnOwnStake = new BN(collatorInfo.bond);
@@ -417,7 +423,7 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
         if (allCollatorsPool.includes(collator.address)) {
           // noted: number of blocks = total points / points per block
           const _collatorPoints = await apiProps.api.query.parachainStaking.awardedPts(parseInt(round.current) - 1, collator.address);
-          const collatorPoints = _collatorPoints.toPrimitive() as number;
+          const collatorPoints = convertToPrimitives(_collatorPoints) as number;
           const blocksPreviousRound = collatorPoints / POINTS_PER_BLOCK;
 
           collator.expectedReturn = calculateMantaNominatorReturn(DECIMAL, collatorCommissionPercent, totalActiveCollators, bnAnnualInflation, blocksPreviousRound, bnCollatorExpectedBlocksPerRound, new BigN(collator.totalStake), false);
@@ -465,7 +471,7 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
       for (const collator of _allCollators) {
         const _collatorAddress = collator[0].toHuman() as string[];
         const collatorAddress = _collatorAddress[0];
-        const collatorInfo = collator[1].toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+        const collatorInfo = convertToPrimitives(collator[1]) as unknown as ParachainStakingCandidateMetadata;
 
         const bnTotalStake = new BN(collatorInfo.totalCounted);
         const bnOwnStake = new BN(collatorInfo.bond);
@@ -533,7 +539,7 @@ export default class ParaNativeStakingPoolHandler extends BaseParaNativeStakingP
     const compoundResult = async (extrinsic: SubmittableExtrinsic<'promise'>): Promise<[TransactionData, YieldTokenBaseInfo]> => {
       const tokenSlug = this.nativeToken.slug;
       // const feeInfo = await extrinsic.paymentInfo(address);
-      // const fee = feeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      // const fee = convertToPrimitives(feeInfo) as unknown as RuntimeDispatchInfo;
 
       // Not use the fee to validate and to display on UI
       return [extrinsic, { slug: tokenSlug, amount: '0' }];

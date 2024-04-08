@@ -10,7 +10,7 @@ import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/
 import { _isChainEvmCompatible } from '@subwallet/extension-base/services/chain-service/utils';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { EarningStatus, UnstakingStatus } from '@subwallet/extension-base/types';
-import { isSameAddress, parseRawNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, isSameAddress, parseRawNumber, reformatAddress } from '@subwallet/extension-base/utils';
 
 import { Codec } from '@polkadot/types/types';
 import { BN, BN_ZERO } from '@polkadot/util';
@@ -200,7 +200,7 @@ export async function subscribeParaChainNominatorMetadata (chainInfo: _ChainInfo
   let bnTotalActiveStake = BN_ZERO;
 
   const _roundInfo = await substrateApi.api.query.parachainStaking.round();
-  const roundInfo = _roundInfo.toPrimitive() as Record<string, number>;
+  const roundInfo = convertToPrimitives(_roundInfo) as Record<string, number>;
   const currentRound = roundInfo.current;
 
   await Promise.all(delegatorState.delegations.map(async (delegation) => {
@@ -210,9 +210,9 @@ export async function subscribeParaChainNominatorMetadata (chainInfo: _ChainInfo
       substrateApi.api.query.parachainStaking.candidateInfo(delegation.owner)
     ]);
 
-    const collatorInfo = _collatorInfo.toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+    const collatorInfo = convertToPrimitives(_collatorInfo) as unknown as ParachainStakingCandidateMetadata;
     const minDelegation = collatorInfo?.lowestTopDelegationAmount.toString();
-    const delegationScheduledRequests = _delegationScheduledRequests.toPrimitive() as unknown as PalletParachainStakingDelegationRequestsScheduledRequest[];
+    const delegationScheduledRequests = convertToPrimitives(_delegationScheduledRequests) as unknown as PalletParachainStakingDelegationRequestsScheduledRequest[];
 
     let hasUnstaking = false;
     let delegationStatus: EarningStatus = EarningStatus.NOT_EARNING;
@@ -264,7 +264,7 @@ export async function subscribeParaChainNominatorMetadata (chainInfo: _ChainInfo
 
   // await Promise.all(nominationList.map(async (nomination) => {
   //   const _collatorInfo = await substrateApi.api.query.parachainStaking.candidateInfo(nomination.validatorAddress);
-  //   const collatorInfo = _collatorInfo.toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+  //   const collatorInfo = convertToPrimitives(_collatorInfo as unknown as ParachainStakingCandidateMetadata;
   //
   //   nomination.validatorMinStake = collatorInfo.lowestTopDelegationAmount.toString();
   // }));
@@ -298,7 +298,7 @@ export async function getParaChainNominatorMetadata (chainInfo: _ChainInfo, addr
   const unstakingMap: Record<string, UnstakingInfo> = {};
 
   const _delegatorState = await chainApi.api.query.parachainStaking.delegatorState(address);
-  const delegatorState = _delegatorState.toPrimitive() as unknown as PalletParachainStakingDelegator;
+  const delegatorState = convertToPrimitives(_delegatorState) as unknown as PalletParachainStakingDelegator;
 
   if (!delegatorState) {
     return {
@@ -324,8 +324,8 @@ export async function getParaChainNominatorMetadata (chainInfo: _ChainInfo, addr
 
     const rawCollatorInfo = _collatorInfo.toHuman() as Record<string, any>;
     const minDelegation = (rawCollatorInfo?.lowestTopDelegationAmount as string).replaceAll(',', '');
-    const roundInfo = _roundInfo.toPrimitive() as Record<string, number>;
-    const delegationScheduledRequests = _delegationScheduledRequests.toPrimitive() as unknown as PalletParachainStakingDelegationRequestsScheduledRequest[];
+    const roundInfo = convertToPrimitives(_roundInfo) as Record<string, number>;
+    const delegationScheduledRequests = convertToPrimitives(_delegationScheduledRequests) as unknown as PalletParachainStakingDelegationRequestsScheduledRequest[];
 
     const currentRound = roundInfo.current;
     let hasUnstaking = false;
@@ -377,7 +377,7 @@ export async function getParaChainNominatorMetadata (chainInfo: _ChainInfo, addr
 
   await Promise.all(nominationList.map(async (nomination) => {
     const _collatorInfo = await chainApi.api.query.parachainStaking.candidateInfo(nomination.validatorAddress);
-    const collatorInfo = _collatorInfo.toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+    const collatorInfo = convertToPrimitives(_collatorInfo) as unknown as ParachainStakingCandidateMetadata;
 
     nomination.validatorMinStake = collatorInfo.lowestTopDelegationAmount.toString();
   }));
@@ -413,7 +413,7 @@ export async function getParachainCollatorsInfo (chain: string, substrateApi: _S
   for (const collator of _allCollators) {
     const _collatorAddress = collator[0].toHuman() as string[];
     const collatorAddress = _collatorAddress[0];
-    const collatorInfo = collator[1].toPrimitive() as unknown as ParachainStakingCandidateMetadata;
+    const collatorInfo = convertToPrimitives(collator[1]) as unknown as ParachainStakingCandidateMetadata;
 
     const bnTotalStake = new BN(collatorInfo.totalCounted);
     const bnOwnStake = new BN(collatorInfo.bond);

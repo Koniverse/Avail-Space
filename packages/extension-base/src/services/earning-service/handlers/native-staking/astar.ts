@@ -8,7 +8,14 @@ import { getEarningStatusByNominations } from '@subwallet/extension-base/koni/ap
 import { _STAKING_ERA_LENGTH_MAP } from '@subwallet/extension-base/services/chain-service/constants';
 import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { BaseYieldPositionInfo, EarningStatus, NativeYieldPoolInfo, PalletDappsStakingAccountLedger, PalletDappsStakingDappInfo, StakeCancelWithdrawalParams, SubmitJoinNativeStaking, TransactionData, UnstakingStatus, ValidatorInfo, YieldPoolInfo, YieldPoolMethodInfo, YieldPositionInfo, YieldStepBaseInfo, YieldStepType, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
-import { balanceFormatter, formatNumber, isUrl, parseRawNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import {
+  balanceFormatter,
+  convertToPrimitives,
+  formatNumber,
+  isUrl,
+  parseRawNumber,
+  reformatAddress
+} from '@subwallet/extension-base/utils';
 import fetch from 'cross-fetch';
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
@@ -213,7 +220,7 @@ export default class AstarNativeStakingPoolHandler extends BaseParaNativeStaking
       for (const item of _stakerInfo) {
         const data = item[0].toHuman() as unknown as any[];
         const stakedDapp = data[1] as Record<string, string>;
-        const stakeData = item[1].toPrimitive() as Record<string, Record<string, string>[]>;
+        const stakeData = convertToPrimitives(item[1]) as Record<string, Record<string, string>[]>;
         const stakeList = stakeData.stakes;
 
         const _dappAddress = stakedDapp.Evm ? stakedDapp.Evm.toLowerCase() : stakedDapp.Wasm;
@@ -311,7 +318,7 @@ export default class AstarNativeStakingPoolHandler extends BaseParaNativeStaking
         await Promise.all(ledgers.map(async (_ledger, i) => {
           const owner = reformatAddress(useAddresses[i], 42);
 
-          const ledger = _ledger.toPrimitive() as unknown as PalletDappsStakingAccountLedger;
+          const ledger = convertToPrimitives(_ledger) as unknown as PalletDappsStakingAccountLedger;
 
           if (ledger && ledger.locked > 0) {
             const nominatorMetadata = await this.parseNominatorMetadata(chainInfo, owner, substrateApi, ledger);
@@ -380,7 +387,7 @@ export default class AstarNativeStakingPoolHandler extends BaseParaNativeStaking
       const dappIcon = isUrl(dapp.iconUrl as string) ? dapp.iconUrl as string : undefined;
       const contractParam = isEthereumAddress(dappAddress) ? { Evm: dappAddress } : { Wasm: dappAddress };
       const _contractInfo = await chainApi.api.query.dappsStaking.contractEraStake(contractParam, era);
-      const contractInfo = _contractInfo.toPrimitive() as Record<string, any>;
+      const contractInfo = convertToPrimitives(_contractInfo) as Record<string, any>;
       let totalStake = '0';
       let stakerCount = 0;
 
@@ -438,7 +445,7 @@ export default class AstarNativeStakingPoolHandler extends BaseParaNativeStaking
     const extrinsic = chainApi.api.tx.dappsStaking.bondAndStake(dappParam, binaryAmount);
     const tokenSlug = this.nativeToken.slug;
     // const feeInfo = await extrinsic.paymentInfo(address);
-    // const fee = feeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+    // const fee = convertToPrimitives(feeInfo) as unknown as RuntimeDispatchInfo;
 
     // Not use the fee to validate and to display on UI
     return [extrinsic, { slug: tokenSlug, amount: '0' }];

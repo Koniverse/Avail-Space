@@ -22,7 +22,7 @@ import { getExplorerLink, parseTransactionData } from '@subwallet/extension-base
 import { isWalletConnectRequest } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { Web3Transaction } from '@subwallet/extension-base/signers/types';
 import { LeavePoolAdditionalData, RequestStakePoolingBonding, RequestYieldStepSubmit, SpecialYieldPoolInfo, YieldPoolType } from '@subwallet/extension-base/types';
-import { anyNumberToBN, reformatAddress } from '@subwallet/extension-base/utils';
+import { anyNumberToBN, convertToPrimitives, reformatAddress } from '@subwallet/extension-base/utils';
 import { mergeTransactionAndSignature } from '@subwallet/extension-base/utils/eth/mergeTransactionAndSignature';
 import { isContractAddress, parseContractInput } from '@subwallet/extension-base/utils/eth/parseTransaction';
 import { BN_ZERO } from '@subwallet/extension-base/utils/number';
@@ -1172,7 +1172,7 @@ export default class TransactionService {
       const api = this.state.chainService.getSubstrateApi(chain);
 
       eventData.nonce = rs.nonce.toNumber();
-      eventData.startBlock = (await api.api.query.system.number()).toPrimitive() as number;
+      eventData.startBlock = convertToPrimitives(await api.api.query.system.number()) as number;
       this.handleTransactionTimeout(emitter, eventData);
       emitter.emit('send', eventData); // This event is needed after sending transaction with queue
 

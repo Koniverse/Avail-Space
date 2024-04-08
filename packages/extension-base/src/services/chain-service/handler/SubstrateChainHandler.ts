@@ -15,6 +15,7 @@ import { logger as createLogger } from '@polkadot/util/logger';
 import { Logger } from '@polkadot/util/types';
 
 import { _PSP22_ABI, _PSP34_ABI } from '../helper';
+import { convertToPrimitives } from "@subwallet/extension-base/utils";
 
 export const DEFAULT_AUX = ['Aux1', 'Aux2', 'Aux3', 'Aux4', 'Aux5', 'Aux6', 'Aux7', 'Aux8', 'Aux9'];
 
@@ -96,14 +97,14 @@ export class SubstrateChainHandler extends AbstractChainHandler {
     const { chainDecimals, chainTokens } = substrateApi.api.registry;
 
     if (substrateApi.api.query.parachainInfo) {
-      result.paraId = (await substrateApi.api.query.parachainInfo.parachainId()).toPrimitive() as number;
+      result.paraId = convertToPrimitives((await substrateApi.api.query.parachainInfo.parachainId())) as number;
     }
 
     // get first token by default, might change
-    result.name = (await substrateApi.api.rpc.system.chain()).toPrimitive();
+    result.name = convertToPrimitives((await substrateApi.api.rpc.system.chain()));
     result.symbol = chainTokens[0];
     result.decimals = chainDecimals[0];
-    result.addressPrefix = substrateApi.api?.consts?.system?.ss58Prefix?.toPrimitive() as number;
+    result.addressPrefix = convertToPrimitives(substrateApi.api?.consts?.system?.ss58Prefix) as number;
     result.existentialDeposit = substrateApi.api.consts.balances.existentialDeposit.toString();
 
     return result;

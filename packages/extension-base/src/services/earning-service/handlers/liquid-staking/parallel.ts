@@ -12,6 +12,7 @@ import { BaseYieldStepDetail, EarningStatus, HandleYieldStepData, LiquidYieldPoo
 import { BN, BN_TEN, BN_ZERO } from '@polkadot/util';
 
 import BaseLiquidStakingPoolHandler from './base';
+import { convertToPrimitives } from '@subwallet/extension-base/utils';
 
 interface BlockHeader {
   number: number
@@ -67,14 +68,14 @@ export default class ParallelLiquidStakingPoolHandler extends BaseLiquidStakingP
 
     for (const _stakingLedger of _stakingLedgers) {
       const _ledger = _stakingLedger[1];
-      const ledger = _ledger.toPrimitive() as unknown as PalletStakingStakingLedger;
+      const ledger = convertToPrimitives(_ledger) as unknown as PalletStakingStakingLedger;
 
       tvl = tvl.add(new BN(ledger.total.toString()));
     }
 
-    const exchangeRate = _exchangeRate.toPrimitive() as number;
-    const currentBlockHeader = _currentBlockHeader.toPrimitive() as unknown as BlockHeader;
-    const currentTimestamp = _currentTimestamp.toPrimitive() as number;
+    const exchangeRate = convertToPrimitives(_exchangeRate) as number;
+    const currentBlockHeader = convertToPrimitives(_currentBlockHeader) as unknown as BlockHeader;
+    const currentTimestamp = convertToPrimitives(_currentTimestamp) as number;
 
     const beginBlock = currentBlockHeader.number - ((24 * 60 * 60) / 6) * 14;
     const _beginBlockHash = await substrateApi.api.rpc.chain.getBlockHash(beginBlock);
@@ -85,8 +86,8 @@ export default class ParallelLiquidStakingPoolHandler extends BaseLiquidStakingP
       substrateApi.api.query.liquidStaking.exchangeRate.at(beginBlockHash)
     ]);
 
-    const beginTimestamp = _beginTimestamp.toPrimitive() as number;
-    const beginExchangeRate = _beginExchangeRate.toPrimitive() as number;
+    const beginTimestamp = convertToPrimitives(_beginTimestamp) as number;
+    const beginExchangeRate = convertToPrimitives(_beginExchangeRate) as number;
     const decimals = 10 ** this.rateDecimals;
 
     const apy = (exchangeRate / beginExchangeRate) ** (365 * 24 * 60 * 60000 / (currentTimestamp - beginTimestamp)) - 1;
@@ -152,7 +153,7 @@ export default class ParallelLiquidStakingPoolHandler extends BaseLiquidStakingP
         this.getExchangeRate()
       ]);
 
-      const currentEra = _currentEra.toPrimitive() as number;
+      const currentEra = convertToPrimitives(_currentEra) as number;
       const decimals = BN_TEN.pow(new BN(this.rateDecimals));
 
       for (let i = 0; i < balances.length; i++) {
@@ -161,7 +162,7 @@ export default class ParallelLiquidStakingPoolHandler extends BaseLiquidStakingP
         // @ts-ignore
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
         const bdata = b?.toHuman();
-        const chunks = unlockingChunks[i].toPrimitive() as unknown as UnlockingChunk[];
+        const chunks = convertToPrimitives(unlockingChunks[i]) as unknown as UnlockingChunk[];
 
         // @ts-ignore
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
@@ -234,7 +235,7 @@ export default class ParallelLiquidStakingPoolHandler extends BaseLiquidStakingP
 
     if (new BN(params.amount).gt(BN_ZERO)) {
       const _mintFeeInfo = await poolOriginSubstrateApi.api.tx.liquidStaking.stake(params.amount).paymentInfo(fakeAddress);
-      const mintFeeInfo = _mintFeeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      const mintFeeInfo = convertToPrimitives(_mintFeeInfo) as unknown as RuntimeDispatchInfo;
 
       return {
         amount: mintFeeInfo.partialFee.toString(),

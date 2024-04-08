@@ -1872,6 +1872,76 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@dedot/codecs@npm:0.0.1-next.c3d95ac1.3, @dedot/codecs@npm:0.0.1-next.c3d95ac1.3+c3d95ac":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "@dedot/codecs@npm:0.0.1-next.c3d95ac1.3"
+  dependencies:
+    "@dedot/shape": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/utils": 0.0.1-next.c3d95ac1.3+c3d95ac
+  checksum: 8a5d5575c67b9b55aaf760129a1339c58679808cf733592a9f2a177a0e5c7afa632047f3a0b4c86f88fe6e0e3d4b89230f9650ca79bb2dfac2033723d3a52872
+  languageName: node
+  linkType: hard
+
+"@dedot/providers@npm:^0.0.1-next.c3d95ac1.3+c3d95ac":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "@dedot/providers@npm:0.0.1-next.c3d95ac1.3"
+  dependencies:
+    "@dedot/utils": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@polkadot/x-ws": ^12.6.2
+  checksum: 7aad38897275b339fbfec801a42a87716f5874985e5c00f6a0876d16601d49db96291f0ce7a16a726dd6ed231c074ba5d861acb31ec6439cebe40610af593aa2
+  languageName: node
+  linkType: hard
+
+"@dedot/shape@npm:0.0.1-next.c3d95ac1.3+c3d95ac":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "@dedot/shape@npm:0.0.1-next.c3d95ac1.3"
+  dependencies:
+    "@dedot/utils": 0.0.1-next.c3d95ac1.3+c3d95ac
+    subshape: ^0.14.0
+  checksum: 739e191c013b0db15b617f540fbf02a18514e1923dd0a50a3b1ac39ce73d460237b0601ba574628b4bf013b606954a3cee291224c71054d14850d5f6e0942198
+  languageName: node
+  linkType: hard
+
+"@dedot/specs@npm:0.0.1-next.c3d95ac1.3, @dedot/specs@npm:0.0.1-next.c3d95ac1.3+c3d95ac":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "@dedot/specs@npm:0.0.1-next.c3d95ac1.3"
+  dependencies:
+    "@dedot/codecs": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/shape": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/types": 0.0.1-next.c3d95ac1.3+c3d95ac
+  checksum: f9b9083ac0cc4b3de6d091e76fd0ed5a70566a905f459609db548ec829b26f19143c24f32d55cba387f80360ebd8c515d82dccdc1fff5fb242ac4780f784bc2b
+  languageName: node
+  linkType: hard
+
+"@dedot/storage@npm:0.0.1-next.c3d95ac1.3+c3d95ac":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "@dedot/storage@npm:0.0.1-next.c3d95ac1.3"
+  checksum: a7eaca87e906110141808e56260d71ee6d3b484d00b2f967480cd280658393e08e42cad0186258cd25de2800b141838d858bc1624743df8b397fdb061481e5ed
+  languageName: node
+  linkType: hard
+
+"@dedot/types@npm:0.0.1-next.c3d95ac1.3+c3d95ac":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "@dedot/types@npm:0.0.1-next.c3d95ac1.3"
+  dependencies:
+    "@dedot/codecs": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/shape": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/utils": 0.0.1-next.c3d95ac1.3+c3d95ac
+  checksum: e3cec35d2f973c39edd0540f6a48adcdc7c0feac608efa930e82f9985547ee81b7a66d7ad6effe1e021d0dc4cbdc6e8b1ce505e558d5b51d8391521fc68dcc82
+  languageName: node
+  linkType: hard
+
+"@dedot/utils@npm:0.0.1-next.c3d95ac1.3+c3d95ac":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "@dedot/utils@npm:0.0.1-next.c3d95ac1.3"
+  dependencies:
+    "@noble/hashes": ^1.3.3
+    "@scure/base": ^1.1.5
+    eventemitter3: ^5.0.1
+  checksum: 2442aebc9d06ad6ec987f2d4a8746064dd789001dd4c55578a1bc4e519abde35ce10179d6d458e43aea6a49444e3baeb7d634fd9676621215a9df6f22bbb0728
+  languageName: node
+  linkType: hard
+
 "@digitalnative/type-definitions@npm:1.1.27":
   version: 1.1.27
   resolution: "@digitalnative/type-definitions@npm:1.1.27"
@@ -6088,6 +6158,8 @@ __metadata:
     "@acala-network/api": ^5.0.2
     "@apollo/client": ^3.7.14
     "@azns/resolver-core": ^1.4.0
+    "@dedot/codecs": 0.0.1-next.c3d95ac1.3
+    "@dedot/specs": 0.0.1-next.c3d95ac1.3
     "@equilab/api": ~1.14.25
     "@ethereumjs/common": ^4.1.0
     "@ethereumjs/tx": ^5.1.0
@@ -6133,6 +6205,7 @@ __metadata:
     browser-passworder: ^2.0.3
     buffer: ^6.0.3
     cross-fetch: ^3.1.5
+    dedot: 0.0.1-next.c3d95ac1.3
     dexie: ^3.2.2
     dexie-export-import: ^4.0.7
     eth-simple-keyring: ^4.2.0
@@ -11925,6 +11998,21 @@ __metadata:
   version: 0.7.0
   resolution: "dedent@npm:0.7.0"
   checksum: 87de191050d9a40dd70cad01159a0bcf05ecb59750951242070b6abf9569088684880d00ba92a955b4058804f16eeaf91d604f283929b4f614d181cd7ae633d2
+  languageName: node
+  linkType: hard
+
+"dedot@npm:0.0.1-next.c3d95ac1.3":
+  version: 0.0.1-next.c3d95ac1.3
+  resolution: "dedot@npm:0.0.1-next.c3d95ac1.3"
+  dependencies:
+    "@dedot/codecs": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/providers": ^0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/shape": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/specs": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/storage": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/types": 0.0.1-next.c3d95ac1.3+c3d95ac
+    "@dedot/utils": 0.0.1-next.c3d95ac1.3+c3d95ac
+  checksum: 919e1ec822de55704577a5b0a92ad2b934df6782a933458e25d2fefac99d4771fdc9535587a13b3300123eaf2d4363236877844b38755fd07dac45630be2b9bc
   languageName: node
   linkType: hard
 
@@ -24579,6 +24667,13 @@ __metadata:
   bin:
     stylus-lookup: bin/cli.js
   checksum: 460e9b6e7e662e2cf98d41ee670cb5da9ec8b8dbc1d4574de29ac422c632d5c7933772822fc12792f2ee9f9c2f62b3f60ed5850690e7c780ab7b6f07010199e4
+  languageName: node
+  linkType: hard
+
+"subshape@npm:^0.14.0":
+  version: 0.14.0
+  resolution: "subshape@npm:0.14.0"
+  checksum: 171a2d55db431917e1206b3cd9b4df976406fb12358f4932aff77d8d67f5564aec6909803ab3b95374876dcfc55c5a9582d0f2c164903e9996289cfcac8dfbd9
   languageName: node
   linkType: hard
 

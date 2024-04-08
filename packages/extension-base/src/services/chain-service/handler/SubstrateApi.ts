@@ -22,10 +22,101 @@ import { typesBundle } from '@polkadot/apps-config/api';
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
 import { TypeRegistry } from '@polkadot/types/create';
 import { Registry } from '@polkadot/types/types';
-import { BN, formatBalance } from '@polkadot/util';
+import { BN, formatBalance, u8aToHex } from '@polkadot/util';
 import { defaults as addressDefaults } from '@polkadot/util-crypto/address/defaults';
-
 import goldbergSpec from './chain-spec/goldberg';
+import { Dedot } from "dedot";
+import EventEmitter from "eventemitter3";
+import { $Metadata } from "@dedot/codecs";
+import { RuntimeApis } from "@dedot/specs";
+
+// @ts-ignore
+class DedotProxy extends EventEmitter {
+  // @ts-ignore
+  private dedot: Dedot;
+
+  constructor(provider: ProviderInterface) {
+    super();
+    Dedot.new({
+      endpoint: '',
+      throwOnUnknownApi: false,
+      runtimeApis: RuntimeApis
+    })
+      .then((api) => {
+        this.dedot = api;
+        this.emit('ready');
+        this.emit('connected');
+        console.log('dedot connected', api);
+      })
+      .catch(() => this.emit('error'));
+  }
+
+  get rpc() {
+    return this.dedot.rpc;
+  }
+
+  get tx() {
+    return this.dedot.tx;
+  }
+
+  get query() {
+    return this.dedot.query;
+  }
+
+  get call() {
+    return this.dedot.call;
+  }
+
+  get consts() {
+    return this.dedot.consts;
+  }
+
+  async connect() {
+    await this.dedot.provider.connect();
+  }
+
+  async disconnect() {
+    await this.dedot.provider.disconnect();
+  }
+
+  isConnected() {
+    return this.dedot.status === 'connected';
+  }
+
+  async isReady() {
+    return true;
+  }
+
+  get runtimeVersion() {
+    return this.dedot.runtimeVersion;
+  }
+
+  get genesisHash() {
+    return {
+      toHex: () => this.dedot.genesisHash
+    };
+  }
+
+  get runtimeMetadata() {
+    return {
+      toHex: () => u8aToHex($Metadata.tryEncode(this.dedot.metadata)),
+      toJSON: () => JSON.parse(JSON.stringify(this.dedot.metadata))
+    }
+  }
+
+  get registry() {
+    const props = this.dedot.chainProperties!;
+    return {
+      chainSS58: props.ss58Format,
+      tokenDecimals: props.tokenDecimals,
+      tokenSymbol: props.tokenSymbol || ['UNIT']
+    }
+  }
+
+  get runtimeChain() {
+    return this.dedot.runtimeChain;
+  }
+}
 
 export class SubstrateApi implements _SubstrateApi {
   chainSlug: string;
@@ -135,6 +226,7 @@ export class SubstrateApi implements _SubstrateApi {
         noInitWarn: true
       });
     } else {
+      // api = new DedotProxy(provider) as unknown as ApiPromise;
       api = new ApiPromise(apiOption);
     }
 
@@ -289,10 +381,10 @@ export class SubstrateApi implements _SubstrateApi {
       unit: tokenSymbol[0].toString()
     };
 
-    const defaultSection = Object.keys(api.tx)[0];
-    const defaultMethod = Object.keys(api.tx[defaultSection])[0];
-
-    this.apiDefaultTx = api.tx[defaultSection][defaultMethod];
-    this.apiDefaultTxSudo = (api.tx.system && api.tx.system.setCode) || this.apiDefaultTx;
+    // const defaultSection = Object.keys(api.tx)[0];
+    // const defaultMethod = Object.keys(api.tx[defaultSection])[0];
+    //
+    // this.apiDefaultTx = api.tx[defaultSection][defaultMethod];
+    this.apiDefaultTxSudo = (api.tx.system && api.tx.system.setCode);
   }
 }

@@ -9,7 +9,7 @@ import { _EXPECTED_BLOCK_TIME, _STAKING_ERA_LENGTH_MAP } from '@subwallet/extens
 import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _getChainSubstrateAddressPrefix } from '@subwallet/extension-base/services/chain-service/utils';
 import { BaseYieldPositionInfo, EarningRewardHistoryItem, EarningRewardItem, EarningStatus, HandleYieldStepData, NominationPoolInfo, NominationYieldPoolInfo, OptimalYieldPath, OptimalYieldPathParams, PalletNominationPoolsBondedPoolInner, PalletNominationPoolsPoolMember, PalletStakingActiveEraInfo, PalletStakingExposure, PalletStakingNominations, RequestStakePoolingBonding, StakeCancelWithdrawalParams, SubmitJoinNominationPool, SubmitYieldJoinData, TransactionData, UnstakingStatus, YieldPoolInfo, YieldPoolMethodInfo, YieldPoolType, YieldPositionInfo, YieldStepBaseInfo, YieldStepType, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
-import { balanceFormatter, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import { balanceFormatter, convertToPrimitives, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 
@@ -196,7 +196,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
       substrateApi.api.query.staking.activeEra()
     ]);
 
-    const poolMetadata = _poolMetadata.toPrimitive() as unknown as string;
+    const poolMetadata = convertToPrimitives(_poolMetadata) as unknown as string;
     const nominations = _nominations.toJSON() as unknown as PalletStakingNominations;
     const poolName = isHex(poolMetadata) ? hexToString(poolMetadata) : poolMetadata;
 
@@ -207,7 +207,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
 
       await Promise.all(validatorList.map(async (validatorAddress) => {
         const _eraStaker = await substrateApi.api.query.staking.erasStakers(currentEra, validatorAddress);
-        const eraStaker = _eraStaker.toPrimitive() as unknown as PalletStakingExposure;
+        const eraStaker = convertToPrimitives(_eraStaker) as unknown as PalletStakingExposure;
 
         const sortedNominators = eraStaker.others
           .sort((a, b) => {
@@ -241,7 +241,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
     let unstakingBalance = BN_ZERO;
 
     Object.entries(poolMemberInfo.unbondingEras).forEach(([unlockingEra, amount]) => {
-      const activeEra = _activeEra.toPrimitive() as unknown as PalletStakingActiveEraInfo;
+      const activeEra = convertToPrimitives(_activeEra) as unknown as PalletStakingActiveEraInfo;
       const era = parseInt(activeEra.index);
       const startTimestampMs = parseInt(activeEra.start);
 
@@ -302,7 +302,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
         const currentEra = _currentEra.toString();
 
         await Promise.all(ledgers.map(async (_poolMemberInfo, i) => {
-          const poolMemberInfo = _poolMemberInfo.toPrimitive() as unknown as PalletNominationPoolsPoolMember;
+          const poolMemberInfo = convertToPrimitives(_poolMemberInfo) as unknown as PalletNominationPoolsPoolMember;
           const owner = reformatAddress(useAddresses[i], 42);
 
           if (poolMemberInfo) {
@@ -390,7 +390,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
     await Promise.all(_allPoolsInfo.map(async (_poolInfo) => {
       const poolAddressList = _poolInfo[0].toHuman() as string[];
       const poolAddress = poolAddressList[0];
-      const poolId = _poolInfo[1].toPrimitive() as number;
+      const poolId = convertToPrimitives(_poolInfo[1]) as number;
       const poolsPalletId = substrateApi.api.consts.nominationPools.palletId.toString();
       const poolStashAccount = parsePoolStashAddress(substrateApi.api, 0, poolId, poolsPalletId);
 
@@ -401,11 +401,11 @@ export default class NominationPoolHandler extends BasePoolHandler {
         substrateApi.api.query.staking.minimumActiveStake()
       ]);
 
-      const minimumActiveStake = _minimumActiveStake.toPrimitive() as number;
+      const minimumActiveStake = convertToPrimitives(_minimumActiveStake) as number;
       const nominations = _nominations.toJSON() as unknown as PalletStakingNominations;
 
-      const poolMetadata = _metadata.toPrimitive() as unknown as string;
-      const bondedPool = _bondedPool.toPrimitive() as unknown as PalletNominationPoolsBondedPoolInner;
+      const poolMetadata = convertToPrimitives(_metadata) as unknown as string;
+      const bondedPool = convertToPrimitives(_bondedPool) as unknown as PalletNominationPoolsBondedPoolInner;
 
       const poolName = isHex(poolMetadata) ? hexToString(poolMetadata) : poolMetadata;
 
@@ -530,7 +530,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
     const compoundResult = async (extrinsic: SubmittableExtrinsic<'promise'>): Promise<[TransactionData, YieldTokenBaseInfo]> => {
       const tokenSlug = this.nativeToken.slug;
       // const feeInfo = await extrinsic.paymentInfo(address);
-      // const fee = feeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      // const fee = convertToPrimitives(feeInfo) as unknown as RuntimeDispatchInfo;
 
       // Not use the fee to validate and to display on UI
       return [extrinsic, { slug: tokenSlug, amount: '0' }];

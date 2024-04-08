@@ -3,7 +3,7 @@
 
 import { TransactionHistoryItem } from '@subwallet/extension-base/background/KoniTypes';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
-import { isSameAddress } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, isSameAddress } from '@subwallet/extension-base/utils';
 
 import { Vec } from '@polkadot/types';
 import { EventRecord } from '@polkadot/types/interfaces';
@@ -46,7 +46,7 @@ const substrateRecover = async (history: TransactionHistoryItem, chainService: C
           return { status: HistoryRecoverStatus.LACK_INFO };
         }
 
-        const currentBlock = (await api.query.system.number()).toPrimitive() as number;
+        const currentBlock = convertToPrimitives(await api.query.system.number()) as number;
 
         for (let i = 1, found = false; i < BLOCK_LIMIT && !found && startBlock + i <= currentBlock; i++) {
           const blockHash = (await api.rpc.chain.getBlockHash(startBlock + i)).toHex();

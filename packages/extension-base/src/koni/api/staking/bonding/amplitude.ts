@@ -9,7 +9,7 @@ import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { EarningStatus, UnstakingStatus } from '@subwallet/extension-base/types';
-import { parseRawNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, parseRawNumber, reformatAddress } from '@subwallet/extension-base/utils';
 
 import { Codec } from '@polkadot/types/types';
 import { BN, BN_ZERO } from '@polkadot/util';
@@ -130,7 +130,7 @@ export async function subscribeAmplitudeNominatorMetadata (chainInfo: _ChainInfo
     if (hasUnstakingInfo) {
       const _currentBlockInfo = await substrateApi.api.rpc.chain.getHeader();
 
-      const currentBlockInfo = _currentBlockInfo.toPrimitive() as unknown as BlockHeader;
+      const currentBlockInfo = convertToPrimitives(_currentBlockInfo) as unknown as BlockHeader;
       const currentBlockNumber = currentBlockInfo.number;
 
       const _blockPerRound = substrateApi.api.consts.parachainStaking.defaultBlocksPerRound.toString();
@@ -187,8 +187,8 @@ export async function getAmplitudeNominatorMetadata (chainInfo: _ChainInfo, addr
   ]);
 
   const minDelegatorStake = chainApi.api.consts.parachainStaking.minDelegatorStake.toString();
-  const delegatorState = _delegatorState.toPrimitive() as unknown as ParachainStakingStakeOption;
-  const unstakingInfo = _unstakingInfo.toPrimitive() as unknown as Record<string, number>;
+  const delegatorState = convertToPrimitives(_delegatorState) as unknown as ParachainStakingStakeOption;
+  const unstakingInfo = convertToPrimitives(_unstakingInfo) as unknown as Record<string, number>;
 
   if (!delegatorState && !unstakingInfo) {
     return {
@@ -229,7 +229,7 @@ export async function getAmplitudeNominatorMetadata (chainInfo: _ChainInfo, addr
   if (unstakingInfo && Object.values(unstakingInfo).length > 0) {
     const _currentBlockInfo = await chainApi.api.rpc.chain.getHeader();
 
-    const currentBlockInfo = _currentBlockInfo.toPrimitive() as unknown as BlockHeader;
+    const currentBlockInfo = convertToPrimitives(_currentBlockInfo) as unknown as BlockHeader;
     const currentBlockNumber = currentBlockInfo.number;
 
     const _blockPerRound = chainApi.api.consts.parachainStaking.defaultBlocksPerRound.toString();
@@ -280,7 +280,7 @@ export async function getAmplitudeCollatorsInfo (chain: string, substrateApi: _S
     const allCollators: ValidatorInfo[] = [];
 
     for (const _collator of _allCollators) {
-      const collatorInfo = _collator[1].toPrimitive() as unknown as CollatorInfo;
+      const collatorInfo = convertToPrimitives(_collator[1]) as unknown as CollatorInfo;
 
       const bnTotalStake = new BN(collatorInfo.total);
       const bnOwnStake = new BN(collatorInfo.stake);
@@ -315,7 +315,7 @@ export async function getAmplitudeCollatorsInfo (chain: string, substrateApi: _S
     const allCollators: ValidatorInfo[] = [];
 
     for (const _collator of _allCollators) {
-      const collatorInfo = _collator[1].toPrimitive() as unknown as CollatorInfo;
+      const collatorInfo = convertToPrimitives(_collator[1]) as unknown as CollatorInfo;
 
       const bnTotalStake = new BN(collatorInfo.total);
       const bnOwnStake = new BN(collatorInfo.stake);

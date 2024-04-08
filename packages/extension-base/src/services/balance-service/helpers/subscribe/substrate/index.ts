@@ -20,6 +20,7 @@ import { BN, BN_ZERO } from '@polkadot/util';
 
 import { subscribeERC20Interval } from '../evm';
 import { subscribeEquilibriumTokenBalance } from './equilibrium';
+import { convertToBn, convertToHuman } from "@subwallet/extension-base/utils";
 
 export const subscribeSubstrateBalance = async (addresses: string[], chainInfo: _ChainInfo, assetMap: Record<string, _ChainAsset>, substrateApi: _SubstrateApi, evmApi: _EvmApi, callback: (rs: BalanceItem[]) => void) => {
   let unsubNativeToken: () => void;
@@ -133,12 +134,12 @@ const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo
     }
 
     const items: BalanceItem[] = balances.map((balance: AccountInfo, index) => {
-      let total = balance.data?.free?.toBn() || new BN(0);
-      const reserved = balance.data?.reserved?.toBn() || new BN(0);
+      let total = convertToBn(balance.data?.free) || new BN(0);
+      const reserved = convertToBn(balance.data?.reserved) || new BN(0);
       // @ts-ignore
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-      const miscFrozen = balance.data?.miscFrozen?.toBn() || balance?.data?.frozen?.toBn() || new BN(0);
-      const feeFrozen = balance.data?.feeFrozen?.toBn() || new BN(0);
+      const miscFrozen = convertToBn(balance.data?.miscFrozen) || convertToBn(balance?.data?.frozen) || new BN(0);
+      const feeFrozen = convertToBn(balance.data?.feeFrozen) || new BN(0);
 
       let locked = reserved.add(miscFrozen);
 
@@ -189,7 +190,7 @@ const subscribeBridgedBalance = async ({ addresses, assetMap, callback, chainInf
 
         return await substrateApi.query.foreignAssets.account.multi(addresses.map((address) => [multiLocation, address]), (balances) => {
           const items: BalanceItem[] = balances.map((balance, index): BalanceItem => {
-            const bdata = balance?.toHuman();
+            const bdata = convertToHuman(balance);
 
             let frozen = BN_ZERO;
             let total = BN_ZERO;

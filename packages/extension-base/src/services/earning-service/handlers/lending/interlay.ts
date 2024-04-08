@@ -11,6 +11,7 @@ import { BN, BN_TEN, BN_ZERO } from '@polkadot/util';
 
 import { fakeAddress } from '../../constants';
 import BaseLendingPoolHandler from './base';
+import { convertToPrimitives } from '@subwallet/extension-base/utils';
 
 export default class InterlayLendingPoolHandler extends BaseLendingPoolHandler {
   public slug: string;
@@ -56,7 +57,7 @@ export default class InterlayLendingPoolHandler extends BaseLendingPoolHandler {
 
     const _exchangeRate = await substrateApi.api.query.loans.exchangeRate(_getTokenOnChainInfo(inputTokenInfo));
 
-    const exchangeRate = _exchangeRate.toPrimitive() as number;
+    const exchangeRate = convertToPrimitives(_exchangeRate) as number;
     const decimals = 10 ** this.rateDecimals;
 
     this.updateExchangeRate(exchangeRate);
@@ -103,6 +104,7 @@ export default class InterlayLendingPoolHandler extends BaseLendingPoolHandler {
     const derivativeTokenSlug = this.derivativeAssets[0];
     const derivativeTokenInfo = this.state.getAssetBySlug(derivativeTokenSlug);
 
+    console.log('substrateApi.api.query.tokens.accounts.multi', useAddresses.map((address) => [address, _getTokenOnChainInfo(derivativeTokenInfo)]))
     const unsub = await substrateApi.api.query.tokens.accounts.multi(useAddresses.map((address) => [address, _getTokenOnChainInfo(derivativeTokenInfo)]), async (_balances) => {
       if (cancel) {
         unsub();
@@ -164,7 +166,7 @@ export default class InterlayLendingPoolHandler extends BaseLendingPoolHandler {
 
     if (new BN(params.amount).gt(BN_ZERO)) {
       const _mintFeeInfo = await poolOriginSubstrateApi.api.tx.loans.mint(_getTokenOnChainInfo(inputTokenInfo), params.amount).paymentInfo(fakeAddress);
-      const mintFeeInfo = _mintFeeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      const mintFeeInfo = convertToPrimitives(_mintFeeInfo) as unknown as RuntimeDispatchInfo;
 
       return {
         amount: mintFeeInfo.partialFee.toString(),

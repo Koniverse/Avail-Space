@@ -11,7 +11,7 @@ import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/
 import { _getChainNativeTokenBasicInfo } from '@subwallet/extension-base/services/chain-service/utils';
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { EarningStatus } from '@subwallet/extension-base/types';
-import { reformatAddress } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, reformatAddress } from '@subwallet/extension-base/utils';
 
 import { Codec } from '@polkadot/types/types';
 import { BN, BN_ZERO } from '@polkadot/util';
@@ -25,7 +25,7 @@ function getSingleStakingAmplitude (substrateApi: _SubstrateApi, address: string
     let delegatorState: ParachainStakingStakeOption[] = [];
 
     if (_STAKING_CHAIN_GROUP.krest_network.includes(chain)) {
-      const krestDelegatorState = _delegatorState.toPrimitive() as unknown as KrestDelegateState;
+      const krestDelegatorState = convertToPrimitives(_delegatorState) as unknown as KrestDelegateState;
 
       const delegates = krestDelegatorState?.delegations as unknown as ParachainStakingStakeOption[];
 
@@ -33,14 +33,14 @@ function getSingleStakingAmplitude (substrateApi: _SubstrateApi, address: string
         delegatorState = delegatorState.concat(delegates);
       }
     } else {
-      const delegate = _delegatorState.toPrimitive() as unknown as ParachainStakingStakeOption;
+      const delegate = convertToPrimitives(_delegatorState) as unknown as ParachainStakingStakeOption;
 
       if (delegate) {
         delegatorState.push(delegate);
       }
     }
 
-    const unstakingInfo = _unstaking.toPrimitive() as Record<string, number>;
+    const unstakingInfo = convertToPrimitives(_unstaking) as Record<string, number>;
     const { symbol } = _getChainNativeTokenBasicInfo(chainInfoMap[chain]);
     const owner = reformatAddress(address, 42);
 
@@ -120,7 +120,7 @@ function getMultiStakingAmplitude (substrateApi: _SubstrateApi, useAddresses: st
         let delegatorState: ParachainStakingStakeOption[] = [];
 
         if (_STAKING_CHAIN_GROUP.krest_network.includes(chain)) {
-          const krestDelegatorState = _delegatorState.toPrimitive() as unknown as KrestDelegateState;
+          const krestDelegatorState = convertToPrimitives(_delegatorState) as unknown as KrestDelegateState;
 
           const delegates = krestDelegatorState?.delegations as unknown as ParachainStakingStakeOption[];
 
@@ -128,14 +128,14 @@ function getMultiStakingAmplitude (substrateApi: _SubstrateApi, useAddresses: st
             delegatorState = delegatorState.concat(delegates);
           }
         } else {
-          const delegate = _delegatorState.toPrimitive() as unknown as ParachainStakingStakeOption;
+          const delegate = convertToPrimitives(_delegatorState) as unknown as ParachainStakingStakeOption;
 
           if (delegate) {
             delegatorState.push(delegate);
           }
         }
 
-        const unstakingInfo = _unstakingStates[i].toPrimitive() as unknown as Record<string, number>;
+        const unstakingInfo = convertToPrimitives(_unstakingStates[i]) as unknown as Record<string, number>;
 
         if (!delegatorState && !unstakingInfo) {
           stakingCallback(chain, {
@@ -256,7 +256,7 @@ export function getParaStakingOnChain (substrateApi: _SubstrateApi, useAddresses
   return substrateApi.api.query.parachainStaking.delegatorState.multi(useAddresses, async (ledgers: Codec[]) => {
     if (ledgers) {
       await Promise.all(ledgers.map(async (_delegatorState, i) => {
-        const delegatorState = _delegatorState.toPrimitive() as unknown as PalletParachainStakingDelegator;
+        const delegatorState = convertToPrimitives(_delegatorState) as unknown as PalletParachainStakingDelegator;
         const owner = reformatAddress(useAddresses[i], 42);
 
         if (delegatorState) {
@@ -322,7 +322,7 @@ export function getAstarStakingOnChain (substrateApi: _SubstrateApi, useAddresse
         let bnUnlockingBalance = BN_ZERO;
         const owner = reformatAddress(useAddresses[i], 42);
 
-        const ledger = _ledger.toPrimitive() as unknown as PalletDappsStakingAccountLedger;
+        const ledger = convertToPrimitives(_ledger) as unknown as PalletDappsStakingAccountLedger;
 
         if (ledger && ledger.locked > 0) {
           const unlockingChunks = ledger.unbondingInfo.unlockingChunks;

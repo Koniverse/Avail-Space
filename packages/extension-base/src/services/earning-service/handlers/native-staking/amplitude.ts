@@ -10,7 +10,13 @@ import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { BaseYieldPositionInfo, BlockHeader, EarningRewardItem, EarningStatus, NativeYieldPoolInfo, ParachainStakingStakeOption, StakeCancelWithdrawalParams, SubmitJoinNativeStaking, TransactionData, UnstakingStatus, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldStepBaseInfo, YieldStepType, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
-import { balanceFormatter, formatNumber, parseRawNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import {
+  balanceFormatter,
+  convertToPrimitives,
+  formatNumber,
+  parseRawNumber,
+  reformatAddress
+} from '@subwallet/extension-base/utils';
 
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { UnsubscribePromise } from '@polkadot/api-base/types/base';
@@ -96,7 +102,7 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
       const minDelegatorStake = substrateApi.api.consts.parachainStaking.minDelegatorStake.toString();
       const unstakingDelay = substrateApi.api.consts.parachainStaking.stakeDuration.toString(); // in blocks
       const _blockPerRound = substrateApi.api.consts.parachainStaking.defaultBlocksPerRound.toString();
-      const maxUnstakeRequests = substrateApi.api.consts.parachainStaking.maxUnstakeRequests.toPrimitive() as number;
+      const maxUnstakeRequests = convertToPrimitives(substrateApi.api.consts.parachainStaking.maxUnstakeRequests) as number;
       const blockPerRound = parseFloat(_blockPerRound);
 
       const roundTime = _STAKING_ERA_LENGTH_MAP[this.chain] || _STAKING_ERA_LENGTH_MAP.default; // in hours
@@ -105,7 +111,7 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
       const minToHuman = formatNumber(minDelegatorStake, nativeToken.decimals || 0, balanceFormatter);
       const delegatorStorages = await substrateApi.api.query.parachainStaking.delegatorState.keys();
       const staked = await substrateApi.api.query.parachainStaking.totalCollatorStake();
-      const stakeInfo = staked.toPrimitive() as unknown as CollatorStakeInfo;
+      const stakeInfo = convertToPrimitives(staked) as unknown as CollatorStakeInfo;
 
       const data: NativeYieldPoolInfo = {
         ...this.baseInfo,
@@ -188,7 +194,7 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
       if (hasUnstakingInfo) {
         const _currentBlockInfo = await substrateApi.api.rpc.chain.getHeader();
 
-        const currentBlockInfo = _currentBlockInfo.toPrimitive() as unknown as BlockHeader;
+        const currentBlockInfo = convertToPrimitives(_currentBlockInfo) as unknown as BlockHeader;
         const currentBlockNumber = currentBlockInfo.number;
 
         const _blockPerRound = substrateApi.api.consts.parachainStaking.defaultBlocksPerRound.toString();
@@ -252,10 +258,10 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
           const owner = reformatAddress(useAddresses[i], 42);
           let delegatorState: ParachainStakingStakeOption[] = [];
 
-          const unstakingInfo = _unstakingStates[i].toPrimitive() as unknown as Record<string, number>;
+          const unstakingInfo = convertToPrimitives(_unstakingStates[i]) as unknown as Record<string, number>;
 
           if (_STAKING_CHAIN_GROUP.krest_network.includes(this.chain)) {
-            const krestDelegatorState = _delegatorState.toPrimitive() as unknown as KrestDelegateState;
+            const krestDelegatorState = convertToPrimitives(_delegatorState) as unknown as KrestDelegateState;
 
             const delegates = krestDelegatorState?.delegations as unknown as ParachainStakingStakeOption[];
 
@@ -263,7 +269,7 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
               delegatorState = delegatorState.concat(delegates);
             }
           } else {
-            const delegate = _delegatorState.toPrimitive() as unknown as ParachainStakingStakeOption;
+            const delegate = convertToPrimitives(_delegatorState) as unknown as ParachainStakingStakeOption;
 
             if (delegate) {
               delegatorState.push(delegate);
@@ -350,7 +356,7 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
       const allCollators: ValidatorInfo[] = [];
 
       for (const _collator of _allCollators) {
-        const collatorInfo = _collator[1].toPrimitive() as unknown as CollatorInfo;
+        const collatorInfo = convertToPrimitives(_collator[1]) as unknown as CollatorInfo;
 
         const bnTotalStake = new BN(collatorInfo.total);
         const bnOwnStake = new BN(collatorInfo.stake);
@@ -386,7 +392,7 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
       const allCollators: ValidatorInfo[] = [];
 
       for (const _collator of _allCollators) {
-        const collatorInfo = _collator[1].toPrimitive() as unknown as CollatorInfo;
+        const collatorInfo = convertToPrimitives(_collator[1]) as unknown as CollatorInfo;
 
         const bnTotalStake = new BN(collatorInfo.total);
         const bnOwnStake = new BN(collatorInfo.stake);
@@ -440,7 +446,7 @@ export default class AmplitudeNativeStakingPoolHandler extends BaseParaNativeSta
     const compoundResult = async (extrinsic: SubmittableExtrinsic<'promise'>): Promise<[TransactionData, YieldTokenBaseInfo]> => {
       const tokenSlug = this.nativeToken.slug;
       // const feeInfo = await extrinsic.paymentInfo(address);
-      // const fee = feeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      // const fee = convertToPrimitives(feeInfo) as unknown as RuntimeDispatchInfo;
 
       // Not use the fee to validate and to display on UI
       return [extrinsic, { slug: tokenSlug, amount: '0' }];

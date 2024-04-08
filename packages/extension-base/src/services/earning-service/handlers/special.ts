@@ -9,7 +9,7 @@ import { YIELD_POOL_STAT_REFRESH_INTERVAL } from '@subwallet/extension-base/koni
 import KoniState from '@subwallet/extension-base/koni/background/handlers/State';
 import { _getChainNativeTokenSlug } from '@subwallet/extension-base/services/chain-service/utils';
 import { BaseYieldStepDetail, HandleYieldStepData, OptimalYieldPath, OptimalYieldPathParams, RequestEarlyValidateYield, ResponseEarlyValidateYield, RuntimeDispatchInfo, SpecialYieldPoolInfo, SpecialYieldPoolMetadata, SubmitYieldJoinData, SubmitYieldStepData, TransactionData, UnstakingInfo, YieldPoolInfo, YieldPoolTarget, YieldPoolType, YieldProcessValidation, YieldStepBaseInfo, YieldStepType, YieldTokenBaseInfo, YieldValidationStatus } from '@subwallet/extension-base/types';
-import { createPromiseHandler, formatNumber, PromiseHandler } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, createPromiseHandler, formatNumber, PromiseHandler } from '@subwallet/extension-base/utils';
 import { t } from 'i18next';
 
 import { BN, BN_TEN, BN_ZERO, noop } from '@polkadot/util';
@@ -275,7 +275,7 @@ export default abstract class BaseSpecialStakingPoolHandler extends BasePoolHand
           });
 
           const _xcmFeeInfo = await xcmTransfer.paymentInfo(address);
-          const xcmFeeInfo = _xcmFeeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+          const xcmFeeInfo = convertToPrimitives(_xcmFeeInfo) as unknown as RuntimeDispatchInfo;
           // TODO: calculate fee for destination chain
 
           const fee: YieldTokenBaseInfo = {

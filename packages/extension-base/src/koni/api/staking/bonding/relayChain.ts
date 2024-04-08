@@ -12,7 +12,7 @@ import { _getChainSubstrateAddressPrefix } from '@subwallet/extension-base/servi
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { EarningStatus, NominationPoolInfo, PalletNominationPoolsBondedPoolInner, PalletNominationPoolsPoolMember, PalletStakingExposure, TernoaStakingRewardsStakingRewardsData, UnstakingStatus, ValidatorExtraInfo } from '@subwallet/extension-base/types';
-import { reformatAddress } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, reformatAddress } from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 
@@ -271,7 +271,7 @@ export async function subscribeRelayChainNominatorMetadata (chainInfo: _ChainInf
   const unlimitedNominatorRewarded = chainApi.api.consts.staking.maxExposurePageSize !== undefined;
   const _maxNominatorRewardedPerValidator = (chainApi.api.consts.staking.maxNominatorRewardedPerValidator || 0).toString();
   const maxNominatorRewardedPerValidator = parseInt(_maxNominatorRewardedPerValidator);
-  const nominations = _nominations.toPrimitive() as unknown as PalletStakingNominations;
+  const nominations = convertToPrimitives(_nominations) as unknown as PalletStakingNominations;
   const currentEra = _currentEra.toString();
   const bonded = _bonded.toHuman();
 
@@ -288,7 +288,7 @@ export async function subscribeRelayChainNominatorMetadata (chainInfo: _ChainInf
         parseIdentity(chainApi, validatorAddress),
         chainApi.api.query.staking.erasStakers(currentEra, validatorAddress)
       ]);
-      const eraStaker = _eraStaker.toPrimitive() as unknown as PalletStakingExposure;
+      const eraStaker = convertToPrimitives(_eraStaker) as unknown as PalletStakingExposure;
       const sortedNominators = eraStaker.others
         .sort((a, b) => {
           return new BigN(b.value).minus(a.value).toNumber();
@@ -401,8 +401,8 @@ export async function getRelayChainNominatorMetadata (chainInfo: _ChainInfo, add
   const unlimitedNominatorRewarded = chainApi.api.consts.staking.maxExposurePageSize !== undefined;
   const _maxNominatorRewardedPerValidator = (chainApi.api.consts.staking.maxNominatorRewardedPerValidator || 0).toString();
   const maxNominatorRewardedPerValidator = parseInt(_maxNominatorRewardedPerValidator);
-  const ledger = _ledger.toPrimitive() as unknown as PalletStakingStakingLedger;
-  const nominations = _nominations.toPrimitive() as unknown as PalletStakingNominations;
+  const ledger = convertToPrimitives(_ledger) as unknown as PalletStakingStakingLedger;
+  const nominations = convertToPrimitives(_nominations) as unknown as PalletStakingNominations;
   const currentEra = _currentEra.toString();
   const bonded = _bonded.toHuman();
 
@@ -432,7 +432,7 @@ export async function getRelayChainNominatorMetadata (chainInfo: _ChainInfo, add
         parseIdentity(chainApi, validatorAddress),
         chainApi.api.query.staking.erasStakers(currentEra, validatorAddress)
       ]);
-      const eraStaker = _eraStaker.toPrimitive() as unknown as PalletStakingExposure;
+      const eraStaker = convertToPrimitives(_eraStaker) as unknown as PalletStakingExposure;
       const sortedNominators = eraStaker.others
         .sort((a, b) => {
           return new BigN(b.value).minus(a.value).toNumber();
@@ -519,7 +519,7 @@ export async function subscribeRelayChainPoolMemberMetadata (chainInfo: _ChainIn
     substrateApi.api.derive?.session?.progress()
   ]);
 
-  const poolMetadata = _poolMetadata.toPrimitive() as unknown as Bytes;
+  const poolMetadata = convertToPrimitives(_poolMetadata) as unknown as Bytes;
   const currentEra = _currentEra.toString();
   const nominations = _nominations.toJSON() as unknown as PalletStakingNominations;
 
@@ -542,7 +542,7 @@ export async function subscribeRelayChainPoolMemberMetadata (chainInfo: _ChainIn
 
     await Promise.all(validatorList.map(async (validatorAddress) => {
       const _eraStaker = await substrateApi.api.query.staking.erasStakers(currentEra, validatorAddress);
-      const eraStaker = _eraStaker.toPrimitive() as unknown as PalletStakingExposure;
+      const eraStaker = convertToPrimitives(_eraStaker) as unknown as PalletStakingExposure;
 
       const sortedNominators = eraStaker.others
         .sort((a, b) => {
@@ -628,7 +628,7 @@ export async function getRelayChainPoolMemberMetadata (chainInfo: _ChainInfo, ad
   const _maxNominatorRewardedPerValidator = (chainApi.api.consts.staking.maxNominatorRewardedPerValidator || 0).toString();
   const maxNominatorRewardedPerValidator = parseInt(_maxNominatorRewardedPerValidator);
   const poolsPalletId = chainApi.api.consts.nominationPools.palletId.toString();
-  const poolMemberInfo = _poolMemberInfo.toPrimitive() as unknown as PalletNominationPoolsPoolMember;
+  const poolMemberInfo = convertToPrimitives(_poolMemberInfo) as unknown as PalletNominationPoolsPoolMember;
   const currentEra = _currentEra.toString();
 
   if (!poolMemberInfo) {
@@ -646,7 +646,7 @@ export async function getRelayChainPoolMemberMetadata (chainInfo: _ChainInfo, ad
   let stakingStatus = EarningStatus.NOT_EARNING;
 
   const _poolMetadata = (await chainApi.api.query.nominationPools.metadata(poolMemberInfo.poolId));
-  const poolMetadata = _poolMetadata.toPrimitive() as unknown as Bytes;
+  const poolMetadata = convertToPrimitives(_poolMetadata) as unknown as Bytes;
 
   const getPoolName = () => {
     if (poolMetadata.isUtf8) {
@@ -669,7 +669,7 @@ export async function getRelayChainPoolMemberMetadata (chainInfo: _ChainInfo, ad
 
     await Promise.all(validatorList.map(async (validatorAddress) => {
       const _eraStaker = await chainApi.api.query.staking.erasStakers(currentEra, validatorAddress);
-      const eraStaker = _eraStaker.toPrimitive() as unknown as PalletStakingExposure;
+      const eraStaker = convertToPrimitives(_eraStaker) as unknown as PalletStakingExposure;
 
       const sortedNominators = eraStaker.others
         .sort((a, b) => {
@@ -747,7 +747,7 @@ export async function getRelayValidatorsInfo (chain: string, substrateApi: _Subs
     chainApi.api.query.stakingRewards?.data && chainApi.api.query.stakingRewards.data()
   ]);
 
-  const stakingRewards = _stakingRewards?.toPrimitive() as unknown as TernoaStakingRewardsStakingRewardsData;
+  const stakingRewards = convertToPrimitives(_stakingRewards) as unknown as TernoaStakingRewardsStakingRewardsData;
 
   const unlimitedNominatorRewarded = chainApi.api.consts.staking.maxExposurePageSize !== undefined;
   const maxNominatorRewarded = (chainApi.api.consts.staking.maxNominatorRewardedPerValidator || 0).toString();
@@ -858,7 +858,7 @@ export async function getRelayPoolsInfo (chain: string, substrateApi: _Substrate
   await Promise.all(_allPoolsInfo.map(async (_poolInfo) => {
     const poolAddressList = _poolInfo[0].toHuman() as string[];
     const poolAddress = poolAddressList[0];
-    const poolId = _poolInfo[1].toPrimitive() as number;
+    const poolId = convertToPrimitives(_poolInfo[1]) as number;
     const poolsPalletId = substrateApi.api.consts.nominationPools.palletId.toString();
     const poolStashAccount = parsePoolStashAddress(substrateApi.api, 0, poolId, poolsPalletId);
 
@@ -869,11 +869,11 @@ export async function getRelayPoolsInfo (chain: string, substrateApi: _Substrate
       chainApi.api.query.staking.minimumActiveStake()
     ]);
 
-    const minimumActiveStake = _minimumActiveStake.toPrimitive() as number;
+    const minimumActiveStake = convertToPrimitives(_minimumActiveStake) as number;
     const nominations = _nominations.toJSON() as unknown as PalletStakingNominations;
 
-    const poolMetadata = _metadata.toPrimitive() as unknown as string;
-    const bondedPool = _bondedPool.toPrimitive() as unknown as PalletNominationPoolsBondedPoolInner;
+    const poolMetadata = convertToPrimitives(_metadata) as unknown as string;
+    const bondedPool = convertToPrimitives(_bondedPool) as unknown as PalletNominationPoolsBondedPoolInner;
 
     // const poolName = transformPoolName(poolMetadata.isUtf8 ? poolMetadata.toUtf8() : poolMetadata.toString());
 

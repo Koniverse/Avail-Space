@@ -7,7 +7,7 @@ import { _STAKING_ERA_LENGTH_MAP } from '@subwallet/extension-base/services/chai
 import { _getAssetDecimals, _getTokenOnChainInfo } from '@subwallet/extension-base/services/chain-service/utils';
 import { fakeAddress } from '@subwallet/extension-base/services/earning-service/constants';
 import { BaseYieldStepDetail, EarningStatus, HandleYieldStepData, LiquidYieldPoolInfo, LiquidYieldPositionInfo, OptimalYieldPath, OptimalYieldPathParams, RuntimeDispatchInfo, SubmitYieldJoinData, TokenBalanceRaw, TransactionData, UnstakingInfo, UnstakingStatus, YieldPoolMethodInfo, YieldPositionInfo, YieldStepType, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
-import { reformatAddress } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, reformatAddress } from '@subwallet/extension-base/utils';
 import BigNumber from 'bignumber.js';
 import fetch from 'cross-fetch';
 
@@ -203,7 +203,7 @@ export default class BifrostLiquidStakingPoolHandler extends BaseLiquidStakingPo
 
       const exchangeRate = new BigNumber(rate);
 
-      const currentRelayEraObj = _currentRelayEra.toPrimitive() as Record<string, number>;
+      const currentRelayEraObj = convertToPrimitives(_currentRelayEra) as Record<string, number>;
 
       const currentRelayEra = currentRelayEraObj.era;
 
@@ -219,7 +219,7 @@ export default class BifrostLiquidStakingPoolHandler extends BaseLiquidStakingPo
         activeBalanceMap[formattedAddress] = balanceItem.free || BN_ZERO;
 
         const _unlockLedger = _unlockLedgerList[i];
-        const unlockLedger = _unlockLedger.toPrimitive();
+        const unlockLedger = convertToPrimitives(_unlockLedger);
 
         if (unlockLedger) {
           // @ts-ignore
@@ -243,7 +243,7 @@ export default class BifrostLiquidStakingPoolHandler extends BaseLiquidStakingPo
       const _unlockInfoList = await substrateApi.api.query.vtokenMinting.tokenUnlockLedger.multi(unlockLedgerList.map(({ ledgerId }) => [_getTokenOnChainInfo(inputTokenInfo), ledgerId]));
 
       for (let i = 0; i < _unlockInfoList.length; i++) {
-        const unlockInfo = _unlockInfoList[i].toPrimitive() as unknown[];
+        const unlockInfo = convertToPrimitives(_unlockInfoList[i]) as unknown[];
 
         const owner = reformatAddress(unlockInfo[0] as string);
         const amount = (unlockInfo[1] as number).toString();
@@ -340,7 +340,7 @@ export default class BifrostLiquidStakingPoolHandler extends BaseLiquidStakingPo
 
     if (new BN(params.amount).gt(BN_ZERO)) {
       const _mintFeeInfo = await poolOriginSubstrateApi.api.tx.vtokenMinting.mint(_getTokenOnChainInfo(inputTokenInfo), params.amount, undefined, undefined).paymentInfo(fakeAddress);
-      const mintFeeInfo = _mintFeeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      const mintFeeInfo = convertToPrimitives(_mintFeeInfo) as unknown as RuntimeDispatchInfo;
 
       return {
         amount: mintFeeInfo.partialFee.toString(),

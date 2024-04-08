@@ -7,7 +7,7 @@ import { getEarningStatusByNominations, PalletDappsStakingAccountLedger, PalletD
 import { _STAKING_ERA_LENGTH_MAP } from '@subwallet/extension-base/services/chain-service/constants';
 import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { EarningStatus, UnstakingStatus } from '@subwallet/extension-base/types';
-import { isUrl, parseRawNumber } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, isUrl, parseRawNumber } from '@subwallet/extension-base/utils';
 import fetch from 'cross-fetch';
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
@@ -123,7 +123,7 @@ export async function subscribeAstarNominatorMetadata (chainInfo: _ChainInfo, ad
     for (const item of _stakerInfo) {
       const data = item[0].toHuman() as unknown as any[];
       const stakedDapp = data[1] as Record<string, string>;
-      const stakeData = item[1].toPrimitive() as Record<string, Record<string, string>[]>;
+      const stakeData = convertToPrimitives(item[1]) as Record<string, Record<string, string>[]>;
       const stakeList = stakeData.stakes;
 
       const _dappAddress = stakedDapp.Evm ? stakedDapp.Evm.toLowerCase() : stakedDapp.Wasm;
@@ -215,7 +215,7 @@ export async function getAstarNominatorMetadata (chainInfo: _ChainInfo, address:
     chainApi.api.query.dappsStaking.generalStakerInfo.entries(address)
   ]);
 
-  const ledger = _ledger.toPrimitive() as unknown as PalletDappsStakingAccountLedger;
+  const ledger = convertToPrimitives(_ledger) as unknown as PalletDappsStakingAccountLedger;
   const currentEra = _era.toString();
   const minDelegatorStake = chainApi.api.consts.dappsStaking.minimumStakingAmount.toString();
 
@@ -234,7 +234,7 @@ export async function getAstarNominatorMetadata (chainInfo: _ChainInfo, address:
     for (const item of _stakerInfo) {
       const data = item[0].toHuman() as unknown as any[];
       const stakedDapp = data[1] as Record<string, string>;
-      const stakeData = item[1].toPrimitive() as Record<string, Record<string, string>[]>;
+      const stakeData = convertToPrimitives(item[1]) as Record<string, Record<string, string>[]>;
       const stakeList = stakeData.stakes;
 
       const dappAddress = convertAddress(stakedDapp.Evm);
@@ -326,7 +326,7 @@ export async function getAstarDappsInfo (networkKey: string, substrateApi: _Subs
     const dappIcon = isUrl(dapp.iconUrl as string) ? dapp.iconUrl as string : undefined;
     const contractParam = isEthereumAddress(dappAddress) ? { Evm: dappAddress } : { Wasm: dappAddress };
     const _contractInfo = await chainApi.api.query.dappsStaking.contractEraStake(contractParam, era);
-    const contractInfo = _contractInfo.toPrimitive() as Record<string, any>;
+    const contractInfo = convertToPrimitives(_contractInfo) as Record<string, any>;
     let totalStake = '0';
     let stakerCount = 0;
 

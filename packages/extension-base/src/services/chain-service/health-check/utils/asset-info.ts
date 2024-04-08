@@ -11,6 +11,7 @@ import BigN from 'bignumber.js';
 
 import { ApiPromise } from '@polkadot/api';
 import { ContractPromise } from '@polkadot/api-contract';
+import { convertToPrimitives } from "@subwallet/extension-base/utils";
 
 const BN_TEN = new BigN(10);
 
@@ -105,8 +106,8 @@ const getByAssetPallet = async (asset: _ChainAsset, api: ApiPromise): Promise<As
     [api.query.assets.metadata, _getTokenOnChainAssetId(asset)]
   ]);
 
-  const info = _info.toPrimitive() as unknown as AssetPalletInfo;
-  const metadata = _metadata.toPrimitive() as unknown as AssetPalletMetadata;
+  const info = convertToPrimitives(_info) as unknown as AssetPalletInfo;
+  const metadata = convertToPrimitives(_metadata) as unknown as AssetPalletMetadata;
 
   return {
     decimals: metadata.decimals,
@@ -133,7 +134,7 @@ const getByAssetRegistryWithChainInfoPallet = async (asset: _ChainAsset, api: Ap
 
   const _metadata = await api.query.assetRegistry.assetMetadatas(data);
 
-  const metadata = _metadata.toPrimitive() as unknown as AssetRegistryWithChainInfoPalletMetadata;
+  const metadata = convertToPrimitives(_metadata) as unknown as AssetRegistryWithChainInfoPalletMetadata;
 
   return {
     decimals: metadata.decimals,
@@ -147,7 +148,7 @@ const getByAssetRegistryWithChainInfoPalletV2 = async (asset: _ChainAsset, api: 
 
   const _metadata = await api.query.assetRegistry.currencyMetadatas(data);
 
-  const metadata = _metadata.toPrimitive() as unknown as AssetRegistryWithChainInfoPalletMetadata;
+  const metadata = convertToPrimitives(_metadata) as unknown as AssetRegistryWithChainInfoPalletMetadata;
 
   return {
     decimals: metadata.decimals,
@@ -161,7 +162,7 @@ const getByAssetRegistryWithChainInfoPalletV3 = async (asset: _ChainAsset, api: 
 
   const _metadata = await api.query.assetRegistry.metadata(data);
 
-  const metadata = _metadata.toPrimitive() as unknown as AssetRegistryWithChainInfoPalletMetadataV3;
+  const metadata = convertToPrimitives(_metadata) as unknown as AssetRegistryWithChainInfoPalletMetadataV3;
 
   return {
     decimals: metadata.decimals,
@@ -175,7 +176,7 @@ const getByOrmlAssetRegistryPallet = async (asset: _ChainAsset, api: ApiPromise)
 
   const _metadata = await api.query.ormlAssetRegistry.metadata(data);
 
-  const metadata = _metadata.toPrimitive() as unknown as OrmlAssetRegistryPalletMetadata;
+  const metadata = convertToPrimitives(_metadata) as unknown as OrmlAssetRegistryPalletMetadata;
 
   return {
     decimals: metadata.decimals,
@@ -199,7 +200,7 @@ const getByAssetManagerWithChainInfoPallet = async (asset: _ChainAsset, api: Api
 
   const _metadata = await api.query.assetManager.assetMetadatas(data);
 
-  const metadata = _metadata.toPrimitive() as unknown as AssetManagerWithChainInfoPalletMetadata;
+  const metadata = convertToPrimitives(_metadata) as unknown as AssetManagerWithChainInfoPalletMetadata;
 
   return {
     decimals: metadata.decimals,
@@ -211,7 +212,7 @@ const getByAssetManagerWithChainInfoPallet = async (asset: _ChainAsset, api: Api
 const getByAssetManagerWithAssetIdPallet = async (asset: _ChainAsset, api: ApiPromise): Promise<AssetSpec> => {
   const _metadata = await api.query.assetManager.assetIdMetadata(_getTokenOnChainAssetId(asset));
 
-  const metadata = _metadata.toPrimitive() as unknown as AssetManagerWithAssetIdPalletMetadata;
+  const metadata = convertToPrimitives(_metadata) as unknown as AssetManagerWithAssetIdPalletMetadata;
 
   return {
     decimals: metadata.metadata.decimals,
@@ -226,8 +227,8 @@ const getByAssetRegistryWithAssetIdPallet = async (asset: _ChainAsset, api: ApiP
     [api.query.assetRegistry.assetMetadataMap, _getTokenOnChainAssetId(asset)]
   ]);
 
-  const info = _info.toPrimitive() as unknown as AssetRegistryWithAssetIdPalletInfo;
-  const metadata = _metadata.toPrimitive() as unknown as AssetRegistryWithAssetIdPalletMetadata;
+  const info = convertToPrimitives(_info) as unknown as AssetRegistryWithAssetIdPalletInfo;
+  const metadata = convertToPrimitives(_metadata) as unknown as AssetRegistryWithAssetIdPalletMetadata;
 
   return {
     decimals: metadata.decimals,

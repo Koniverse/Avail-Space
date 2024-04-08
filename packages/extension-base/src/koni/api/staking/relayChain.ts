@@ -7,7 +7,7 @@ import { PalletStakingStakingLedger, subscribeRelayChainNominatorMetadata, subsc
 import { _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _getChainNativeTokenBasicInfo } from '@subwallet/extension-base/services/chain-service/utils';
 import { EarningStatus, PalletNominationPoolsPoolMember } from '@subwallet/extension-base/types';
-import { reformatAddress } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, reformatAddress } from '@subwallet/extension-base/utils';
 
 import { Codec } from '@polkadot/types/types';
 import { BN } from '@polkadot/util';
@@ -20,7 +20,7 @@ export function getRelayStakingOnChain (substrateApi: _SubstrateApi, useAddresse
     if (ledgers) {
       await Promise.all(ledgers.map(async (_ledger: Codec, i) => {
         const owner = reformatAddress(useAddresses[i], 42);
-        const ledger = _ledger.toPrimitive() as unknown as PalletStakingStakingLedger;
+        const ledger = convertToPrimitives(_ledger) as unknown as PalletStakingStakingLedger;
 
         if (ledger) {
           const _totalBalance = ledger.total.toString();
@@ -78,7 +78,7 @@ export function getRelayPoolingOnChain (substrateApi: _SubstrateApi, useAddresse
   return substrateApi.api.query?.nominationPools?.poolMembers.multi(useAddresses, async (ledgers: Codec[]) => {
     if (ledgers) {
       await Promise.all(ledgers.map(async (_poolMemberInfo, i) => {
-        const poolMemberInfo = _poolMemberInfo.toPrimitive() as unknown as PalletNominationPoolsPoolMember;
+        const poolMemberInfo = convertToPrimitives(_poolMemberInfo) as unknown as PalletNominationPoolsPoolMember;
         const owner = reformatAddress(useAddresses[i], 42);
 
         if (poolMemberInfo) {

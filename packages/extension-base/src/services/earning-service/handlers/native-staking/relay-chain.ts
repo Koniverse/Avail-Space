@@ -11,7 +11,7 @@ import { _getChainSubstrateAddressPrefix } from '@subwallet/extension-base/servi
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { BaseYieldPositionInfo, EarningStatus, NativeYieldPoolInfo, OptimalYieldPath, PalletStakingActiveEraInfo, PalletStakingExposure, PalletStakingNominations, PalletStakingStakingLedger, PalletStakingValidatorPrefs, StakeCancelWithdrawalParams, SubmitJoinNativeStaking, SubmitYieldJoinData, TernoaStakingRewardsStakingRewardsData, TransactionData, UnstakingStatus, ValidatorExtraInfo, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
-import { balanceFormatter, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import { balanceFormatter, convertToPrimitives, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 
@@ -108,7 +108,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
       const expectedReturn = calculateChainStakedReturnV2(chainInfo, rawTotalIssuance, erasPerDay, lastTotalStaked, validatorEraReward, true);
       const eraTime = _STAKING_ERA_LENGTH_MAP[chainInfo.slug] || _STAKING_ERA_LENGTH_MAP.default; // in hours
       const unlockingPeriod = parseInt(unlockingEras) * eraTime; // in hours
-      const farmerCount = _counterForNominators.toPrimitive() as number;
+      const farmerCount = convertToPrimitives(_counterForNominators) as number;
 
       const minToHuman = formatNumber(minStake.toString(), nativeToken.decimals || 0, balanceFormatter);
 
@@ -167,7 +167,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     const unlimitedNominatorRewarded = substrateApi.api.consts.staking.maxExposurePageSize !== undefined;
     const _maxNominatorRewardedPerValidator = (substrateApi.api.consts.staking.maxNominatorRewardedPerValidator || 0).toString();
     const maxNominatorRewardedPerValidator = parseInt(_maxNominatorRewardedPerValidator);
-    const nominations = _nominations.toPrimitive() as unknown as PalletStakingNominations;
+    const nominations = convertToPrimitives(_nominations) as unknown as PalletStakingNominations;
     const bonded = _bonded.toHuman();
 
     const activeStake = ledger.active.toString();
@@ -185,7 +185,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
           parseIdentity(substrateApi, validatorAddress),
           substrateApi.api.query.staking.erasStakers(currentEra, validatorAddress)
         ]);
-        const eraStaker = _eraStaker.toPrimitive() as unknown as PalletStakingExposure;
+        const eraStaker = convertToPrimitives(_eraStaker) as unknown as PalletStakingExposure;
         const sortedNominators = eraStaker.others
           .sort((a, b) => {
             return new BigN(b.value).minus(a.value).toNumber();
@@ -232,7 +232,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     }
 
     ledger.unlocking.forEach((unlockingChunk) => {
-      const activeEra = _activeEra.toPrimitive() as unknown as PalletStakingActiveEraInfo;
+      const activeEra = convertToPrimitives(_activeEra) as unknown as PalletStakingActiveEraInfo;
       const era = parseInt(activeEra.index);
       const startTimestampMs = parseInt(activeEra.start);
 
@@ -292,7 +292,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
 
         await Promise.all(ledgers.map(async (_ledger: Codec, i) => {
           const owner = reformatAddress(useAddresses[i], 42);
-          const ledger = _ledger.toPrimitive() as unknown as PalletStakingStakingLedger;
+          const ledger = convertToPrimitives(_ledger) as unknown as PalletStakingStakingLedger;
 
           if (ledger) {
             const nominatorMetadata = await this.parseNominatorMetadata(chainInfo, owner, substrateApi, ledger, currentEra, minStake, _deriveSessionProgress);
@@ -373,7 +373,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
       }
     }
 
-    const stakingRewards = _stakingRewards?.toPrimitive() as unknown as TernoaStakingRewardsStakingRewardsData;
+    const stakingRewards = convertToPrimitives(_stakingRewards) as unknown as TernoaStakingRewardsStakingRewardsData;
 
     const unlimitedNominatorRewarded = chainApi.api.consts.staking.maxExposurePageSize !== undefined;
     const maxNominatorRewarded = (chainApi.api.consts.staking.maxNominatorRewardedPerValidator || 0).toString();
@@ -556,7 +556,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
       const extrinsic = chainApi.api.tx.utility.batchAll([bondTx, nominateTx]);
       // const fees = await Promise.all([bondTx.paymentInfo(address), nominateTx.paymentInfo(address)]);
       // const totalFee = fees.reduce((previousValue, currentItem) => {
-      //   const fee = currentItem.toPrimitive() as unknown as RuntimeDispatchInfo;
+      //   const fee = convertToPrimitives(currentItem) as unknown as RuntimeDispatchInfo;
       //
       //   return previousValue + fee.partialFee;
       // }, 0);
@@ -599,12 +599,12 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
 
     if (bondTx && !nominateTx) {
       // const feeInfo = await bondTx.paymentInfo(address);
-      // const fee = feeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      // const fee = convertToPrimitives(feeInfo) as unknown as RuntimeDispatchInfo;
 
       return [bondTx, { slug: tokenSlug, amount: '0' }];
     } else if (nominateTx && !bondTx) {
       // const feeInfo = await nominateTx.paymentInfo(address);
-      // const fee = feeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      // const fee = convertToPrimitives(feeInfo) as unknown as RuntimeDispatchInfo;
 
       return [nominateTx, { slug: tokenSlug, amount: '0' }];
     }

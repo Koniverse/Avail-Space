@@ -11,6 +11,7 @@ import fetch from 'cross-fetch';
 import { BN, BN_TEN, BN_ZERO } from '@polkadot/util';
 
 import BaseLiquidStakingPoolHandler from './base';
+import { convertToPrimitives } from "@subwallet/extension-base/utils";
 
 interface AcalaLiquidStakingMetaItem {
   exchangeRate: string,
@@ -175,7 +176,7 @@ export default class AcalaLiquidStakingPoolHandler extends BaseLiquidStakingPool
 
         const unstakings: UnstakingInfo[] = [];
 
-        const redeemRequest = redeemRequests[i].toPrimitive() as unknown as AcalaLiquidStakingRedeemRequest;
+        const redeemRequest = convertToPrimitives(redeemRequests[i]) as unknown as AcalaLiquidStakingRedeemRequest;
 
         if (redeemRequest) {
           // If withdrawable = false, redeem request is claimed
@@ -236,7 +237,7 @@ export default class AcalaLiquidStakingPoolHandler extends BaseLiquidStakingPool
 
     if (new BN(params.amount).gt(BN_ZERO)) {
       const _mintFeeInfo = await poolOriginSubstrateApi.api.tx.homa.mint(params.amount).paymentInfo(fakeAddress);
-      const mintFeeInfo = _mintFeeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
+      const mintFeeInfo = convertToPrimitives(_mintFeeInfo) as unknown as RuntimeDispatchInfo;
 
       return {
         amount: mintFeeInfo.partialFee.toString(),
