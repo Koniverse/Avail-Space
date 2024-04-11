@@ -182,7 +182,8 @@ export class DedotProxy extends EventEmitter {
       provider: new ProviderInterfaceAdapter(provider),
       throwOnUnknownApi: false,
       runtimeApis: RuntimeApis,
-      signedExtensions: { CheckAppId }
+      signedExtensions: { CheckAppId },
+      cacheMetadata: true
     });
 
     this.dedot.on('connected', () => this.emit('connected'));
