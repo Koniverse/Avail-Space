@@ -12,7 +12,7 @@ import { _getChainSubstrateAddressPrefix } from '@subwallet/extension-base/servi
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { EarningStatus, NominationPoolInfo, PalletNominationPoolsBondedPoolInner, PalletNominationPoolsPoolMember, PalletStakingExposure, TernoaStakingRewardsStakingRewardsData, UnstakingStatus, ValidatorExtraInfo } from '@subwallet/extension-base/types';
-import { convertToPrimitives, reformatAddress } from '@subwallet/extension-base/utils';
+import { convertToHuman, convertToPrimitives, reformatAddress } from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 
@@ -273,7 +273,7 @@ export async function subscribeRelayChainNominatorMetadata (chainInfo: _ChainInf
   const maxNominatorRewardedPerValidator = parseInt(_maxNominatorRewardedPerValidator);
   const nominations = convertToPrimitives(_nominations) as unknown as PalletStakingNominations;
   const currentEra = _currentEra.toString();
-  const bonded = _bonded.toHuman();
+  const bonded = convertToHuman(_bonded);
 
   const activeStake = ledger.active.toString();
   const nominationList: NominationInfo[] = [];
@@ -404,7 +404,7 @@ export async function getRelayChainNominatorMetadata (chainInfo: _ChainInfo, add
   const ledger = convertToPrimitives(_ledger) as unknown as PalletStakingStakingLedger;
   const nominations = convertToPrimitives(_nominations) as unknown as PalletStakingNominations;
   const currentEra = _currentEra.toString();
-  const bonded = _bonded.toHuman();
+  const bonded = convertToHuman(_bonded);
 
   if (!ledger) {
     return {

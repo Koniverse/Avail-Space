@@ -7,6 +7,7 @@ import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning
 import { LendingYieldPoolInfo, LiquidYieldPoolInfo, NativeYieldPoolInfo, NominationYieldPoolInfo, YieldAssetExpectedEarning, YieldCompoundingPeriod, YieldPoolInfo, YieldPoolType } from '@subwallet/extension-base/types';
 
 import { hexToString, isHex } from '@polkadot/util';
+import { convertToHuman } from "@subwallet/extension-base/utils";
 
 export function calculateReward (apr: number, amount = 0, compoundingPeriod = YieldCompoundingPeriod.YEARLY, isApy = false): YieldAssetExpectedEarning {
   if (!apr) {
@@ -68,7 +69,8 @@ export async function parseIdentity (substrateApi: _SubstrateApi, address: strin
 
     const _parent = await substrateApi.api.query.identity.superOf(address);
 
-    const parentInfo = _parent.toHuman() as unknown as PalletIdentitySuper;
+    const parentInfo = convertToHuman(_parent) as unknown as PalletIdentitySuper;
+    console.log('parentInfo', parentInfo);
 
     if (parentInfo) {
       const [parentAddress, { Raw: data }] = parentInfo;
@@ -83,7 +85,8 @@ export async function parseIdentity (substrateApi: _SubstrateApi, address: strin
     }
 
     const _identity = await substrateApi.api.query.identity.identityOf(address);
-    const identityInfo = _identity.toHuman() as unknown as PalletIdentityRegistration;
+    const identityInfo = convertToHuman(_identity) as unknown as PalletIdentityRegistration;
+    console.log('identityInfo', identityInfo);
 
     if (identityInfo) {
       const displayName = identityInfo.info?.display?.Raw;

@@ -6,13 +6,20 @@ import '@polkadot/types-augment';
 import { options as acalaOptions } from '@acala-network/api';
 import { rpc as oakRpc, types as oakTypes } from '@oak-foundation/types';
 import { MetadataItem } from '@subwallet/extension-base/background/KoniTypes';
-import { _API_OPTIONS_CHAIN_GROUP, API_AUTO_CONNECT_MS, API_CONNECT_TIMEOUT } from '@subwallet/extension-base/services/chain-service/constants';
+import {
+  _API_OPTIONS_CHAIN_GROUP,
+  API_AUTO_CONNECT_MS,
+  API_CONNECT_TIMEOUT
+} from '@subwallet/extension-base/services/chain-service/constants';
 import { getSubstrateConnectProvider } from '@subwallet/extension-base/services/chain-service/handler/light-client';
 import { DEFAULT_AUX } from '@subwallet/extension-base/services/chain-service/handler/SubstrateChainHandler';
 import { _ApiOptions } from '@subwallet/extension-base/services/chain-service/handler/types';
-import { _ChainConnectionStatus, _SubstrateApi, _SubstrateDefaultFormatBalance } from '@subwallet/extension-base/services/chain-service/types';
+import {
+  _ChainConnectionStatus,
+  _SubstrateApi,
+  _SubstrateDefaultFormatBalance
+} from '@subwallet/extension-base/services/chain-service/types';
 import { createPromiseHandler, PromiseHandler } from '@subwallet/extension-base/utils/promise';
-import { spec as availSpec } from 'avail-js-sdk';
 import { BehaviorSubject } from 'rxjs';
 
 import { ApiPromise, WsProvider } from '@polkadot/api';
@@ -22,45 +29,226 @@ import { typesBundle } from '@polkadot/apps-config/api';
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
 import { TypeRegistry } from '@polkadot/types/create';
 import { Registry } from '@polkadot/types/types';
-import { BN, formatBalance, u8aToHex } from '@polkadot/util';
+import { BN, formatBalance, isFunction, u8aToHex } from '@polkadot/util';
 import { defaults as addressDefaults } from '@polkadot/util-crypto/address/defaults';
-import goldbergSpec from './chain-spec/goldberg';
-import { Dedot } from "dedot";
-import EventEmitter from "eventemitter3";
+import { Dedot, PortableRegistry, SignedExtension, $, PalletTxMetadataLatest } from "dedot";
 import { $Metadata } from "@dedot/codecs";
 import { RuntimeApis } from "@dedot/specs";
+import { EventEmitter } from "@dedot/utils";
+import {
+  ConnectionStatus,
+  JsonRpcProvider,
+  ProviderEvent,
+  Subscription,
+  SubscriptionCallback,
+  SubscriptionInput
+} from "@dedot/providers";
 
-// @ts-ignore
-class DedotProxy extends EventEmitter {
-  // @ts-ignore
-  private dedot: Dedot;
+const overrideBigIntEncode = (shape: $.AnyShape) => {
+  const originSubEncode = shape.subEncode;
+
+  shape.subEncode = (buffer, value: any) => {
+    let nextValue = value;
+    if (typeof value === 'string' || value instanceof BN) {
+      nextValue = BigInt(value.toString());
+    }
+
+    console.log('before encode', value, nextValue);
+
+    return originSubEncode(buffer, nextValue as never);
+  };
+}
+
+overrideBigIntEncode($.u64);
+overrideBigIntEncode($.u128);
+overrideBigIntEncode($.u256);
+
+overrideBigIntEncode($.compact($.u64));
+overrideBigIntEncode($.compact($.u128));
+overrideBigIntEncode($.compact($.u256));
+
+console.log('DONE SHAPES OVERRIDE');
+
+
+class CheckAppId extends SignedExtension<number> {
+  override async init(): Promise<void> {
+    this.data = this.payloadOptions.appId || 0;
+  }
+}
+
+class ProviderInterfaceAdapter extends EventEmitter<ProviderEvent> implements JsonRpcProvider {
+  constructor(public inner: ProviderInterface) {
+    super();
+
+    this.inner.on('connected', () => this.#emit('connected'));
+    this.inner.on('disconnected', () => this.#emit('disconnected'));
+    this.inner.on('error', () => this.#emit('error'));
+
+    if (this.inner.isConnected) {
+      this.emit('connected');
+    }
+  }
+
+  #emit(event: ProviderEvent) {
+    console.log('ProviderEvent', event);
+    this.emit(event);
+  }
+
+  get status(): ConnectionStatus {
+    if (this.inner.isConnected) {
+      return 'connected';
+    } else {
+      return 'disconnected';
+    }
+  }
+
+  async connect(): Promise<this> {
+    try {
+      await this.inner.connect();
+    } catch (e) {
+      console.error(e);
+    }
+
+    return this
+  }
+
+  disconnect(): Promise<void> {
+    return this.inner.disconnect();
+  }
+
+  send<T = any>(method: string, params: any[]): Promise<T> {
+    return this.inner.send(method, params);
+  }
+
+  async subscribe<T = any>(input: SubscriptionInput, callback: SubscriptionCallback<T>): Promise<Subscription> {
+    let sub: Subscription;
+
+    const subscriptionId = await this.inner.subscribe(input.subname, input.subscribe, input.params, (error, result) => {
+      callback(error, result, sub);
+    });
+
+    sub = {
+      unsubscribe: async () => {
+        await this.inner.unsubscribe(input.subname, input.unsubscribe, subscriptionId);
+      },
+      subscriptionId: subscriptionId.toString()
+    }
+
+    return sub;
+  }
+}
+
+export interface Carrier {
+  exec: (...args: any[]) => any;
+  chain?: string[];
+}
+
+export const newProxyChain = (
+  carrier: Carrier,
+  currentLevel = 1,
+  maxLevel = 3,
+) => {
+  const { exec, chain = [] } = carrier;
+  if (currentLevel === maxLevel) {
+    return exec(...chain);
+  }
+
+  return new Proxy(carrier, {
+    get(target: Carrier, property: string | symbol, receiver: any): any {
+      if (!target.chain) {
+        target.chain = [];
+      }
+
+      const { chain } = target;
+
+      chain.push(property.toString());
+
+      return newProxyChain(target, currentLevel + 1, maxLevel);
+    },
+  });
+};
+
+export class DedotProxy extends EventEmitter {
+  dedot!: Dedot;
+
+  public get isDedot() {
+    return true;
+  }
 
   constructor(provider: ProviderInterface) {
     super();
-    Dedot.new({
-      endpoint: '',
+
+    this.dedot = new Dedot({
+      provider: new ProviderInterfaceAdapter(provider),
       throwOnUnknownApi: false,
-      runtimeApis: RuntimeApis
-    })
-      .then((api) => {
-        this.dedot = api;
-        this.emit('ready');
-        this.emit('connected');
-        console.log('dedot connected', api);
-      })
-      .catch(() => this.emit('error'));
+      runtimeApis: RuntimeApis,
+      signedExtensions: { CheckAppId }
+    });
+
+    this.dedot.on('connected', () => this.emit('connected'));
+    this.dedot.on('disconnected', () => this.emit('disconnected'));
+    this.dedot.on('ready', () => this.emit('ready'));
+    this.dedot.on('error', () => this.emit('error'));
   }
 
   get rpc() {
-    return this.dedot.rpc;
+    return newProxyChain({ exec: (...chain: string[]) => this.dedot.rpc[chain.join('_')] });
   }
 
   get tx() {
-    return this.dedot.tx;
+    return newProxyChain({
+      exec: (pallet: string, method: string) => {
+        const txMeta = this.dedot.tx[pallet][method].meta as PalletTxMetadataLatest;
+
+        console.log(pallet, method);
+
+        const fn = (...args: any[]) => {
+          if (pallet === 'utility' && (method === 'batch' || method === 'batchAll')) {
+            // @ts-ignore
+            args[0] = args[0].map((arg) => arg.call);
+          }
+
+          txMeta.fieldCodecs.forEach(($codec, index) => {
+            if ($codec.metadata[0].factory === $.taggedUnion) {
+              args[index] = $codec.tryDecode(args[index]);
+              console.log('field', $codec);
+            }
+          });
+
+          console.log('args', args);
+
+          // @ts-ignore
+          return this.dedot.tx[pallet][method](...args);
+        }
+
+        fn.meta = txMeta;
+
+        return fn;
+      }
+    })
   }
 
   get query() {
-    return this.dedot.query;
+    return newProxyChain({
+      exec: (pallet: string, method: string) => {
+        const query = this.dedot.query[pallet][method];
+
+        const fn = (...args: any[]) => {
+          let inArgs = args.slice();
+          const lastArg = args.at(-1);
+          const callback = isFunction(lastArg) ? inArgs.pop() : undefined;
+          if (inArgs.length === 1) {
+            inArgs = inArgs[0];
+          }
+
+          return query(inArgs, callback);
+        };
+
+        Object.assign(fn, query);
+
+        return fn;
+      }
+    })
   }
 
   get call() {
@@ -72,19 +260,26 @@ class DedotProxy extends EventEmitter {
   }
 
   async connect() {
-    await this.dedot.provider.connect();
+    await this.dedot.connect();
   }
 
   async disconnect() {
-    await this.dedot.provider.disconnect();
+    await this.dedot.disconnect();
   }
 
-  isConnected() {
-    return this.dedot.status === 'connected';
+  get isConnected() {
+    return this.dedot?.status === 'connected';
   }
 
-  async isReady() {
-    return true;
+  get isReady(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const timer = setInterval(() => {
+        if (this.isConnected) {
+          clearInterval(timer);
+          resolve(true);
+        }
+      })
+    });
   }
 
   get runtimeVersion() {
@@ -104,13 +299,16 @@ class DedotProxy extends EventEmitter {
     }
   }
 
-  get registry() {
+  get registry(): PortableRegistry {
     const props = this.dedot.chainProperties!;
-    return {
+    const registry = this.dedot.registry;
+    Object.assign(registry, {
       chainSS58: props.ss58Format,
       tokenDecimals: props.tokenDecimals,
       tokenSymbol: props.tokenSymbol || ['UNIT']
-    }
+    });
+
+    return registry
   }
 
   get runtimeChain() {
@@ -133,17 +331,18 @@ export class SubstrateApi implements _SubstrateApi {
   private handleApiReady: PromiseHandler<_SubstrateApi>;
   public readonly isApiConnectedSubject = new BehaviorSubject(false);
   public readonly connectionStatusSubject = new BehaviorSubject(_ChainConnectionStatus.DISCONNECTED);
-  get isApiConnected (): boolean {
+
+  get isApiConnected(): boolean {
     return this.isApiConnectedSubject.getValue();
   }
 
   substrateRetry = 0;
 
-  get connectionStatus (): _ChainConnectionStatus {
+  get connectionStatus(): _ChainConnectionStatus {
     return this.connectionStatusSubject.getValue();
   }
 
-  private updateConnectionStatus (status: _ChainConnectionStatus): void {
+  private updateConnectionStatus(status: _ChainConnectionStatus): void {
     const isConnected = status === _ChainConnectionStatus.CONNECTED;
 
     if (isConnected !== this.isApiConnectedSubject.value) {
@@ -166,7 +365,7 @@ export class SubstrateApi implements _SubstrateApi {
   systemName = '';
   systemVersion = '';
 
-  private createProvider (apiUrl: string): ProviderInterface {
+  private createProvider(apiUrl: string): ProviderInterface {
     if (apiUrl.startsWith('light://')) {
       this.useLightClient = true;
 
@@ -178,7 +377,7 @@ export class SubstrateApi implements _SubstrateApi {
     }
   }
 
-  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): ApiPromise {
+  private createApi(provider: ProviderInterface, externalApiPromise?: ApiPromise): ApiPromise {
     const apiOption: ApiOptions = {
       provider,
       typesBundle,
@@ -201,7 +400,7 @@ export class SubstrateApi implements _SubstrateApi {
     if (externalApiPromise) {
       api = externalApiPromise;
     } else if (_API_OPTIONS_CHAIN_GROUP.acala.includes(this.chainSlug)) {
-      api = new ApiPromise(acalaOptions({ provider, noInitWarn: true }));
+      api = new ApiPromise(acalaOptions({provider, noInitWarn: true}));
     } else if (_API_OPTIONS_CHAIN_GROUP.turing.includes(this.chainSlug)) {
       api = new ApiPromise({
         provider,
@@ -210,23 +409,10 @@ export class SubstrateApi implements _SubstrateApi {
         noInitWarn: true
       });
     } else if (_API_OPTIONS_CHAIN_GROUP.avail.includes(this.chainSlug)) {
-      api = new ApiPromise({
-        provider,
-        rpc: availSpec.rpc,
-        types: availSpec.types,
-        signedExtensions: availSpec.signedExtensions,
-        noInitWarn: true
-      });
+      api = new DedotProxy(provider) as unknown as ApiPromise;
     } else if (_API_OPTIONS_CHAIN_GROUP.goldberg.includes(this.chainSlug)) {
-      api = new ApiPromise({
-        provider,
-        rpc: goldbergSpec.rpc,
-        types: goldbergSpec.types,
-        signedExtensions: goldbergSpec.signedExtensions,
-        noInitWarn: true
-      });
+      api = new DedotProxy(provider) as unknown as ApiPromise;
     } else {
-      // api = new DedotProxy(provider) as unknown as ApiPromise;
       api = new ApiPromise(apiOption);
     }
 
@@ -366,12 +552,16 @@ export class SubstrateApi implements _SubstrateApi {
     this.systemName = systemName.toString();
     this.systemVersion = systemVersion.toString();
 
-    const properties = registry.createType('ChainProperties', { ss58Format: api.registry.chainSS58, tokenDecimals: api.registry.chainDecimals, tokenSymbol: api.registry.chainTokens });
+    const properties = registry.createType('ChainProperties', {
+      ss58Format: api.registry.chainSS58,
+      tokenDecimals: api.registry.chainDecimals,
+      tokenSymbol: api.registry.chainTokens
+    });
     const ss58Format = properties.ss58Format.unwrapOr(DEFAULT_SS58).toNumber();
     const tokenSymbol = properties.tokenSymbol.unwrapOr([formatBalance.getDefaults().unit, ...DEFAULT_AUX]);
     const tokenDecimals = properties.tokenDecimals.unwrapOr([DEFAULT_DECIMALS]);
 
-    registry.setChainProperties(registry.createType('ChainProperties', { ss58Format, tokenDecimals, tokenSymbol }));
+    registry.setChainProperties(registry.createType('ChainProperties', {ss58Format, tokenDecimals, tokenSymbol}));
 
     // first set up the UI helpers
     this.defaultFormatBalance = {

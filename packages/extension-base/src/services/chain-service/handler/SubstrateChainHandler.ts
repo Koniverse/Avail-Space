@@ -216,6 +216,10 @@ export class SubstrateChainHandler extends AbstractChainHandler {
       return existed;
     }
 
+    if (apiUrl === 'wss://goldberg.avail.tools/ws') {
+      apiUrl = 'wss://rpc-testnet.avail.tools/ws';
+    }
+
     const metadata = await this.parent?.getMetadata(chainSlug);
     const apiObject = new SubstrateApi(chainSlug, apiUrl, { providerName, metadata, externalApiPromise });
 

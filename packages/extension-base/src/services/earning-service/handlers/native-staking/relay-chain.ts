@@ -11,7 +11,13 @@ import { _getChainSubstrateAddressPrefix } from '@subwallet/extension-base/servi
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { parseIdentity } from '@subwallet/extension-base/services/earning-service/utils';
 import { BaseYieldPositionInfo, EarningStatus, NativeYieldPoolInfo, OptimalYieldPath, PalletStakingActiveEraInfo, PalletStakingExposure, PalletStakingNominations, PalletStakingStakingLedger, PalletStakingValidatorPrefs, StakeCancelWithdrawalParams, SubmitJoinNativeStaking, SubmitYieldJoinData, TernoaStakingRewardsStakingRewardsData, TransactionData, UnstakingStatus, ValidatorExtraInfo, ValidatorInfo, YieldPoolInfo, YieldPositionInfo, YieldTokenBaseInfo } from '@subwallet/extension-base/types';
-import { balanceFormatter, convertToPrimitives, formatNumber, reformatAddress } from '@subwallet/extension-base/utils';
+import {
+  balanceFormatter,
+  convertToHuman,
+  convertToPrimitives,
+  formatNumber,
+  reformatAddress
+} from '@subwallet/extension-base/utils';
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 
@@ -22,6 +28,7 @@ import { Codec } from '@polkadot/types/types';
 import { BN, BN_ZERO } from '@polkadot/util';
 
 import BaseNativeStakingPoolHandler from './base';
+import { ApiPromise } from "@polkadot/api";
 
 export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPoolHandler {
   /* Subscribe pool info */
@@ -168,7 +175,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     const _maxNominatorRewardedPerValidator = (substrateApi.api.consts.staking.maxNominatorRewardedPerValidator || 0).toString();
     const maxNominatorRewardedPerValidator = parseInt(_maxNominatorRewardedPerValidator);
     const nominations = convertToPrimitives(_nominations) as unknown as PalletStakingNominations;
-    const bonded = _bonded.toHuman();
+    const bonded = convertToHuman(_bonded);
 
     const activeStake = ledger.active.toString();
     const totalStake = ledger.total.toString();
@@ -177,8 +184,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     const unstakingList: UnstakingInfo[] = [];
 
     if (nominations) {
-      const validatorList = nominations.targets;
-
+      const validatorList = convertToPrimitives(nominations.targets) as string[];
       await Promise.all(validatorList.map(async (validatorAddress) => {
         let nominationStatus = EarningStatus.NOT_EARNING;
         const [[identity], _eraStaker] = await Promise.all([
@@ -544,8 +550,15 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     let bondTx: SubmittableExtrinsic<'promise'> | undefined;
     let nominateTx: SubmittableExtrinsic<'promise'> | undefined;
 
-    const _params = chainApi.api.tx.staking.bond.toJSON() as Record<string, any>;
-    const paramsCount = (_params.args as any[]).length;
+    let paramsCount;
+    if (chainApi.api instanceof ApiPromise) {
+      const _params = chainApi.api.tx.staking.bond.toJSON() as Record<string, any>;
+      paramsCount = (_params.args as any[]).length;
+    } else {
+      // @ts-ignore
+      paramsCount = chainApi.api.tx.staking.bond.meta.fields.length;
+    }
+
 
     const validatorParamList = targetValidators.map((validator) => {
       return validator.address;

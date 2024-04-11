@@ -10,7 +10,7 @@ import { _BALANCE_CHAIN_GROUP, _MANTA_ZK_CHAIN_GROUP, _ZK_ASSET_PREFIX } from '@
 import { _EvmApi, _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _checkSmartContractSupportByChain, _getChainNativeTokenSlug, _getContractAddressOfToken, _getTokenOnChainAssetId, _getTokenOnChainInfo, _getXcmAssetMultilocation, _isBridgedToken, _isChainEvmCompatible, _isSubstrateRelayChain } from '@subwallet/extension-base/services/chain-service/utils';
 import { BalanceItem, PalletNominationPoolsPoolMember, SubscribeBasePalletBalance, SubscribeSubstratePalletBalance, TokenBalanceRaw } from '@subwallet/extension-base/types';
-import { filterAssetsByChainAndType } from '@subwallet/extension-base/utils';
+import { convertToPrimitives, filterAssetsByChainAndType } from '@subwallet/extension-base/utils';
 import { combineLatest, Observable } from 'rxjs';
 
 import { ContractPromise } from '@polkadot/api-contract';
@@ -97,12 +97,20 @@ export const subscribeSubstrateBalance = async (addresses: string[], chainInfo: 
 const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo, substrateApi }: SubscribeSubstratePalletBalance) => {
   const chainNativeTokenSlug = _getChainNativeTokenSlug(chainInfo);
 
-  const balanceSubscribe: Observable<Codec[]> = substrateApi.rx.query.system.account.multi(addresses);
+  const balanceSubscribe: Observable<Codec[]> = new Observable<Codec[]>((subscriber) => {
+    substrateApi.query.system.account.multi(addresses, (balances) => {
+      subscriber.next(balances);
+    })
+  });
 
   let poolSubscribe: Observable<Codec[]>;
 
   if ((_isSubstrateRelayChain(chainInfo) && substrateApi.query.nominationPools)) {
-    poolSubscribe = substrateApi.rx.query.nominationPools.poolMembers?.multi(addresses);
+    poolSubscribe = new Observable<Codec[]>((subscriber) => {
+      substrateApi.query.nominationPools.poolMembers?.multi(addresses, (balances) => {
+        subscriber.next(balances);
+      })
+    });
   } else {
     poolSubscribe = new Observable<Codec[]>((subscriber) => {
       subscriber.next(addresses.map(() => ({
@@ -118,7 +126,7 @@ const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo
     const pooledStakingBalances: BN[] = [];
 
     for (const _poolMemberData of poolMemberDatas) {
-      const poolMemberData = _poolMemberData.toPrimitive() as unknown as PalletNominationPoolsPoolMember;
+      const poolMemberData = convertToPrimitives(_poolMemberData) as unknown as PalletNominationPoolsPoolMember;
 
       if (poolMemberData) {
         let pooled = new BN(poolMemberData.points.toString());
