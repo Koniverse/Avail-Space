@@ -16,8 +16,22 @@ import { HistoryService } from '@subwallet/extension-base/services/history-servi
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
 import { TRANSACTION_TIMEOUT } from '@subwallet/extension-base/services/transaction-service/constants';
 import { parseLiquidStakingEvents, parseLiquidStakingFastUnstakeEvents, parseTransferEventLogs, parseXcmEventLogs } from '@subwallet/extension-base/services/transaction-service/event-parser';
-import { getBaseTransactionInfo, getTransactionId, isSubstrateTransaction } from '@subwallet/extension-base/services/transaction-service/helpers';
-import { SWTransaction, SWTransactionInput, SWTransactionResponse, TransactionEmitter, TransactionEventMap, TransactionEventResponse, ValidateTransactionResponseInput } from '@subwallet/extension-base/services/transaction-service/types';
+import {
+  getBaseTransactionInfo,
+  getTransactionId,
+  isDedotSubstrateTransaction,
+  isSubstrateTransaction
+} from '@subwallet/extension-base/services/transaction-service/helpers';
+import {
+  DedotExtrinsic,
+  SWTransaction,
+  SWTransactionInput,
+  SWTransactionResponse,
+  TransactionEmitter,
+  TransactionEventMap,
+  TransactionEventResponse,
+  ValidateTransactionResponseInput
+} from '@subwallet/extension-base/services/transaction-service/types';
 import { getExplorerLink, parseTransactionData } from '@subwallet/extension-base/services/transaction-service/utils';
 import { isWalletConnectRequest } from '@subwallet/extension-base/services/wallet-connect-service/helpers';
 import { Web3Transaction } from '@subwallet/extension-base/signers/types';
@@ -41,11 +55,12 @@ import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
 import { Signer, SignerResult } from '@polkadot/api/types';
 import { EventRecord } from '@polkadot/types/interfaces';
 import { SignerPayloadJSON } from '@polkadot/types/types/extrinsic';
-import { isHex } from '@polkadot/util';
+import { isHex, isObject } from '@polkadot/util';
 import { HexString } from '@polkadot/util/types';
 
 import { _TRANSFER_CHAIN_GROUP } from '../chain-service/constants';
 import NotificationService from '../notification-service/NotificationService';
+
 
 export default class TransactionService {
   private readonly state: KoniState;
@@ -127,6 +142,7 @@ export default class TransactionService {
     };
 
     const chainInfo = this.state.chainService.getChainInfoByKey(chain);
+    const { dedot } = this.state.chainService.getSubstrateApi(chain);
 
     if (!chainInfo) {
       validationResponse.errors.push(new TransactionError(BasicTxErrorType.INTERNAL_ERROR, t('Cannot find network')));
@@ -140,13 +156,19 @@ export default class TransactionService {
         try {
           if (isSubstrateTransaction(transaction)) {
             estimateFee.value = (await transaction.paymentInfo(address)).partialFee.toString();
+            // TODO add Dedot transaction
+          } else if (isDedotSubstrateTransaction(transaction)) {
+            const txU8a = transaction.toU8a();
+            const paymentInfo = await dedot.call.transactionPaymentApi.queryInfo(txU8a, txU8a.length);
+            estimateFee.value = paymentInfo.partialFee.toString();
+            console.log('dedot tx paymentInfo', paymentInfo);
           } else {
             const web3 = this.state.chainService.getEvmApi(chain);
 
             if (!web3) {
               validationResponse.errors.push(new TransactionError(BasicTxErrorType.CHAIN_DISCONNECTED, undefined));
             } else {
-              const gasLimit = await web3.api.eth.estimateGas(transaction);
+              const gasLimit = await web3.api.eth.estimateGas(transaction as TransactionConfig);
 
               const priority = await calculateGasFeeParams(web3, chainInfo.slug);
 
@@ -162,6 +184,7 @@ export default class TransactionService {
             }
           }
         } catch (e) {
+          console.error(e);
           const error = e as Error;
 
           if (error.message.includes('gas required exceeds allowance') && error.message.includes('insufficient funds')) {
@@ -496,34 +519,34 @@ export default class TransactionService {
 
         break;
       case ExtrinsicType.STAKING_UNBOND:
-        {
-          const data = parseTransactionData<ExtrinsicType.STAKING_UNBOND>(transaction.data);
+      {
+        const data = parseTransactionData<ExtrinsicType.STAKING_UNBOND>(transaction.data);
 
-          if (data.isLiquidStaking && data.derivativeTokenInfo && data.exchangeRate && data.inputTokenInfo) {
-            historyItem.amount = {
-              decimals: _getAssetDecimals(data.derivativeTokenInfo),
-              symbol: _getAssetSymbol(data.derivativeTokenInfo),
-              value: data.amount
-            };
+        if (data.isLiquidStaking && data.derivativeTokenInfo && data.exchangeRate && data.inputTokenInfo) {
+          historyItem.amount = {
+            decimals: _getAssetDecimals(data.derivativeTokenInfo),
+            symbol: _getAssetSymbol(data.derivativeTokenInfo),
+            value: data.amount
+          };
 
-            historyItem.additionalInfo = {
-              inputTokenSlug: data.inputTokenInfo.slug,
-              exchangeRate: data.exchangeRate
-            } as TransactionAdditionalInfo[ExtrinsicType.STAKING_UNBOND];
-          } else {
-            historyItem.to = data.validatorAddress || '';
-            historyItem.amount = { ...baseNativeAmount, value: data.amount || '0' };
-          }
+          historyItem.additionalInfo = {
+            inputTokenSlug: data.inputTokenInfo.slug,
+            exchangeRate: data.exchangeRate
+          } as TransactionAdditionalInfo[ExtrinsicType.STAKING_UNBOND];
+        } else {
+          historyItem.to = data.validatorAddress || '';
+          historyItem.amount = { ...baseNativeAmount, value: data.amount || '0' };
         }
+      }
 
         break;
       case ExtrinsicType.STAKING_LEAVE_POOL:
-        {
-          const data = parseTransactionData<ExtrinsicType.STAKING_LEAVE_POOL>(transaction.data);
+      {
+        const data = parseTransactionData<ExtrinsicType.STAKING_LEAVE_POOL>(transaction.data);
 
-          historyItem.to = data.address || '';
-          historyItem.amount = { ...baseNativeAmount, value: data.amount || '0' };
-        }
+        historyItem.to = data.address || '';
+        historyItem.amount = { ...baseNativeAmount, value: data.amount || '0' };
+      }
 
         break;
       case ExtrinsicType.STAKING_CLAIM_REWARD: {
@@ -916,10 +939,10 @@ export default class TransactionService {
   }
 
   private async signAndSendEvmTransaction ({ address,
-    chain,
-    id,
-    transaction,
-    url }: SWTransaction): Promise<TransactionEmitter> {
+                                             chain,
+                                             id,
+                                             transaction,
+                                             url }: SWTransaction): Promise<TransactionEmitter> {
     const payload = (transaction as EvmSendTransactionRequest);
     const evmApi = this.state.chainService.getEvmApi(chain);
     const chainInfo = this.state.chainService.getChainInfoByKey(chain);
@@ -1153,69 +1176,143 @@ export default class TransactionService {
       extrinsicHash: id
     };
 
-    (transaction as SubmittableExtrinsic).signAsync(address, {
-      signer: {
-        signPayload: async (payload: SignerPayloadJSON) => {
-          const signing = await this.state.requestService.signInternalTransaction(id, address, url || EXTENSION_REQUEST_URL, payload);
+    const signer = {
+      signPayload: async (payload: SignerPayloadJSON) => {
+        console.log('signPayload', payload);
+        const signing = await this.state.requestService.signInternalTransaction(id, address, url || EXTENSION_REQUEST_URL, payload);
+        console.log('after sign', signing);
 
-          return {
-            id: (new Date()).getTime(),
-            signature: signing.signature
-          } as SignerResult;
-        }
-      } as Signer
-    }).then(async (rs) => {
-      // Emit signed event
-      emitter.emit('signed', eventData);
+        return {
+          id: (new Date()).getTime(),
+          signature: signing.signature
+        } as SignerResult;
+      }
+    } as Signer;
 
-      // Send transaction
-      const api = this.state.chainService.getSubstrateApi(chain);
+    console.log('transaction', transaction);
 
-      eventData.nonce = rs.nonce.toNumber();
-      eventData.startBlock = (await api.api.query.system.number()).toPrimitive() as number;
-      this.handleTransactionTimeout(emitter, eventData);
-      emitter.emit('send', eventData); // This event is needed after sending transaction with queue
+    const dedotTx = !!(transaction as any).$Codec;
+    if (dedotTx && transaction) {
+      // const api = this.state.chainService.getSubstrateApi(chain);
+      (transaction as DedotExtrinsic).sign(address, { signer }).then(async (rs) => {
+        console.log('rs', rs);
+        // Emit signed event
+        emitter.emit('signed', eventData);
 
-      rs.send((txState) => {
-        // handle events, logs, history
-        if (!txState || !txState.status) {
-          return;
-        }
+        // Send transaction
+        const api = this.state.chainService.getSubstrateApi(chain);
 
-        if (txState.status.isInBlock) {
-          eventData.eventLogs = txState.events;
+        // TODO expose nonce from dedot side
+        // eventData.nonce = rs.nonce.toNumber();
+        eventData.nonce = (await api.dedot.query.system.account(address)).nonce; // TODO -1 ?
+        eventData.startBlock = (await api.dedot.query.system.number()) as number;
+        this.handleTransactionTimeout(emitter, eventData);
+        emitter.emit('send', eventData); // This event is needed after sending transaction with queue
 
-          if (!eventData.extrinsicHash || eventData.extrinsicHash === '' || !isHex(eventData.extrinsicHash)) {
-            eventData.extrinsicHash = txState.txHash.toHex();
-            eventData.blockHash = txState.status.asInBlock.toHex();
-            emitter.emit('extrinsicHash', eventData);
+        rs.send((txState) => {
+          // handle events, logs, history
+          if (!txState || !txState.status) {
+            return;
           }
-        }
 
-        if (txState.status.isFinalized) {
-          eventData.extrinsicHash = txState.txHash.toHex();
-          eventData.eventLogs = txState.events;
-          // TODO: push block hash and block number into eventData
-          txState.events
-            .filter(({ event: { section } }) => section === 'system')
-            .forEach(({ event: { data: [error], method } }): void => {
-              if (method === 'ExtrinsicFailed') {
-                eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, error.toString()));
-                emitter.emit('error', eventData);
-              } else if (method === 'ExtrinsicSuccess') {
-                emitter.emit('success', eventData);
-              }
-            });
-        }
+          if (txState.status.tag === 'InBlock') {
+            eventData.eventLogs = txState.events as any;
+
+            if (!eventData.extrinsicHash || eventData.extrinsicHash === '' || !isHex(eventData.extrinsicHash)) {
+              eventData.extrinsicHash = txState.txHash;
+              eventData.blockHash = txState.status.value;
+              emitter.emit('extrinsicHash', eventData);
+            }
+          }
+
+          if (txState.status.tag === 'Finalized') {
+            eventData.extrinsicHash = txState.txHash;
+            eventData.eventLogs = txState.events as any;
+
+            // TODO: push block hash and block number into eventData
+            txState.events
+              .filter(({event: {pallet}}) => pallet === 'System')
+              .forEach(({event: {palletEvent}}): void => {
+                if (isObject(palletEvent)) {
+                  if (palletEvent.name === 'ExtrinsicFailed') {
+                    eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, palletEvent.data.dispatchError.tag));
+                    emitter.emit('error', eventData);
+                  } else if (palletEvent.name === 'ExtrinsicSuccess') {
+                    emitter.emit('success', eventData);
+                  }
+                }
+              });
+          }
+        }).catch((e: Error) => {
+          console.error(e);
+          eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, e.message));
+          emitter.emit('error', eventData);
+        });
       }).catch((e: Error) => {
-        eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, e.message));
+        console.error(e);
+        this.removeTransaction(id);
+        eventData.errors.push(new TransactionError(BasicTxErrorType.UNABLE_TO_SIGN, e.message));
         emitter.emit('error', eventData);
       });
-    }).catch((e: Error) => {
-      this.removeTransaction(id);
-      eventData.errors.push(new TransactionError(BasicTxErrorType.UNABLE_TO_SIGN, e.message));
-      emitter.emit('error', eventData);
-    });
+    } else {
+      (transaction as SubmittableExtrinsic).signAsync(address, {
+        signer
+      }).then(async (rs) => {
+        console.log('rs', rs);
+        // Emit signed event
+        emitter.emit('signed', eventData);
+
+        // Send transaction
+        const api = this.state.chainService.getSubstrateApi(chain);
+
+        eventData.nonce = rs.nonce.toNumber();
+        eventData.startBlock = (await api.api.query.system.number()).toPrimitive() as number;
+        this.handleTransactionTimeout(emitter, eventData);
+        emitter.emit('send', eventData); // This event is needed after sending transaction with queue
+
+        rs.send((txState) => {
+          // handle events, logs, history
+          if (!txState || !txState.status) {
+            return;
+          }
+
+          if (txState.status.isInBlock) {
+            eventData.eventLogs = txState.events;
+
+            if (!eventData.extrinsicHash || eventData.extrinsicHash === '' || !isHex(eventData.extrinsicHash)) {
+              eventData.extrinsicHash = txState.txHash.toHex();
+              eventData.blockHash = txState.status.asInBlock.toHex();
+              emitter.emit('extrinsicHash', eventData);
+            }
+          }
+
+          if (txState.status.isFinalized) {
+            eventData.extrinsicHash = txState.txHash.toHex();
+            eventData.eventLogs = txState.events;
+            // TODO: push block hash and block number into eventData
+            txState.events
+              .filter(({event: {section}}) => section === 'system')
+              .forEach(({event: {data: [error], method}}): void => {
+                if (method === 'ExtrinsicFailed') {
+                  eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, error.toString()));
+                  emitter.emit('error', eventData);
+                } else if (method === 'ExtrinsicSuccess') {
+                  emitter.emit('success', eventData);
+                }
+              });
+          }
+        }).catch((e: Error) => {
+          console.error(e);
+          eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, e.message));
+          emitter.emit('error', eventData);
+        });
+      }).catch((e: Error) => {
+        console.error(e);
+        this.removeTransaction(id);
+        eventData.errors.push(new TransactionError(BasicTxErrorType.UNABLE_TO_SIGN, e.message));
+        emitter.emit('error', eventData);
+      });
+    }
 
     return emitter;
   }

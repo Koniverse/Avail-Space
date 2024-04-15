@@ -3,7 +3,7 @@
 
 import { _ChainInfo } from '@subwallet/chain-list/types';
 import { ExtrinsicType } from '@subwallet/extension-base/background/KoniTypes';
-import { SWTransaction } from '@subwallet/extension-base/services/transaction-service/types';
+import { DedotExtrinsic, SWTransaction } from '@subwallet/extension-base/services/transaction-service/types';
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
 
@@ -19,7 +19,11 @@ export const getValidationId = (chainType: string, chain: string): string => {
 };
 
 export const isSubstrateTransaction = (tx: SWTransaction['transaction']): tx is SubmittableExtrinsic => {
-  return !!(tx as SubmittableExtrinsic).send;
+  return !!(tx as SubmittableExtrinsic).signAsync && !!(tx as SubmittableExtrinsic).send;
+};
+
+export const isDedotSubstrateTransaction = (tx: SWTransaction['transaction']): tx is DedotExtrinsic => {
+  return !!(tx as DedotExtrinsic).$Codec;
 };
 
 const typeName = (type: SWTransaction['extrinsicType']) => {

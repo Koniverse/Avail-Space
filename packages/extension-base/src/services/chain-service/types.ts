@@ -12,6 +12,7 @@ import { ApiPromise } from '@polkadot/api';
 import { SubmittableExtrinsicFunction } from '@polkadot/api/promise/types';
 import { ChainProperties, ChainType } from '@polkadot/types/interfaces';
 import { Registry } from '@polkadot/types/types';
+import { Dedot } from "dedot";
 
 export interface _DataMap {
   chainInfoMap: Record<string, _ChainInfo>,
@@ -82,6 +83,7 @@ export interface _SubstrateApiState {
 
 export interface _SubstrateApi extends _SubstrateApiState, _ChainBaseApi {
   api: ApiPromise;
+  dedot: Dedot;
   isReady: Promise<_SubstrateApi>;
 
   specName: string;

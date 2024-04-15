@@ -15,13 +15,14 @@ import { balanceFormatter, formatNumber, reformatAddress } from '@subwallet/exte
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 
-import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { UnsubscribePromise } from '@polkadot/api-base/types/base';
 import { DeriveSessionProgress } from '@polkadot/api-derive/types';
 import { Codec } from '@polkadot/types/types';
 import { BN, BN_ZERO } from '@polkadot/util';
 
 import BaseNativeStakingPoolHandler from './base';
+import { DedotExtrinsic } from "@subwallet/extension-base/services/transaction-service/types";
+import type { PalletStakingRewardDestination } from "dedot";
 
 export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPoolHandler {
   /* Subscribe pool info */
@@ -535,25 +536,25 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     return errors;
   }
 
-  async createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo, bondDest = 'Staked'): Promise<[TransactionData, YieldTokenBaseInfo]> {
+  async createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo, bondDest: PalletStakingRewardDestination = { tag: 'Staked'}): Promise<[TransactionData, YieldTokenBaseInfo]> {
     const { address, amount, selectedValidators: targetValidators } = data;
     const chainApi = await this.substrateApi.isReady;
-    const binaryAmount = new BN(amount);
+    const binaryAmount = BigInt(amount);
     const tokenSlug = this.nativeToken.slug;
 
-    let bondTx: SubmittableExtrinsic<'promise'> | undefined;
-    let nominateTx: SubmittableExtrinsic<'promise'> | undefined;
+    let bondTx: DedotExtrinsic | undefined;
+    let nominateTx: DedotExtrinsic | undefined;
 
-    const _params = chainApi.api.tx.staking.bond.toJSON() as Record<string, any>;
-    const paramsCount = (_params.args as any[]).length;
+    const _params = chainApi.dedot.tx.staking.bond.meta!.fields;
+    const paramsCount = _params.length;
 
     const validatorParamList = targetValidators.map((validator) => {
       return validator.address;
     });
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    const compoundTransactions = async (bondTx: SubmittableExtrinsic<'promise'>, nominateTx: SubmittableExtrinsic<'promise'>): Promise<[TransactionData, YieldTokenBaseInfo]> => {
-      const extrinsic = chainApi.api.tx.utility.batchAll([bondTx, nominateTx]);
+    const compoundTransactions = async (bondTx: DedotExtrinsic, nominateTx: DedotExtrinsic): Promise<[TransactionData, YieldTokenBaseInfo]> => {
+      const extrinsic = chainApi.dedot.tx.utility.batchAll([bondTx.call, nominateTx.call]);
       // const fees = await Promise.all([bondTx.paymentInfo(address), nominateTx.paymentInfo(address)]);
       // const totalFee = fees.reduce((previousValue, currentItem) => {
       //   const fee = currentItem.toPrimitive() as unknown as RuntimeDispatchInfo;
@@ -567,33 +568,35 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
 
     if (!positionInfo) {
       if (paramsCount === 2) {
-        bondTx = chainApi.api.tx.staking.bond(binaryAmount, bondDest);
+        bondTx = chainApi.dedot.tx.staking.bond(binaryAmount, bondDest);
       } else {
-        bondTx = chainApi.api.tx.staking.bond(address, binaryAmount, bondDest);
+        // @ts-ignore
+        bondTx = chainApi.dedot.tx.staking.bond(address, binaryAmount, bondDest);
       }
 
-      nominateTx = chainApi.api.tx.staking.nominate(validatorParamList);
+      nominateTx = chainApi.dedot.tx.staking.nominate(validatorParamList);
 
       return compoundTransactions(bondTx, nominateTx);
     }
 
     if (!positionInfo.isBondedBefore) { // first time
       if (paramsCount === 2) {
-        bondTx = chainApi.api.tx.staking.bond(binaryAmount, bondDest);
+        bondTx = chainApi.dedot.tx.staking.bond(binaryAmount, bondDest);
       } else {
-        bondTx = chainApi.api.tx.staking.bond(address, binaryAmount, bondDest);
+        // @ts-ignore
+        bondTx = chainApi.dedot.tx.staking.bond(address, binaryAmount, bondDest);
       }
 
-      nominateTx = chainApi.api.tx.staking.nominate(validatorParamList);
+      nominateTx = chainApi.dedot.tx.staking.nominate(validatorParamList);
 
       return compoundTransactions(bondTx, nominateTx);
     } else {
-      if (binaryAmount.gt(BN_ZERO)) {
-        bondTx = chainApi.api.tx.staking.bondExtra(binaryAmount);
+      if (binaryAmount > 0n) {
+        bondTx = chainApi.dedot.tx.staking.bondExtra(binaryAmount);
       }
 
       if (positionInfo.isBondedBefore && targetValidators.length > 0) {
-        nominateTx = chainApi.api.tx.staking.nominate(validatorParamList);
+        nominateTx = chainApi.dedot.tx.staking.nominate(validatorParamList);
       }
     }
 
@@ -665,17 +668,17 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     }
 
     let extrinsic: TransactionData;
-    const binaryAmount = new BN(amount);
+    const binaryAmount = BigInt(amount);
 
     const isUnstakeAll = amount === poolPosition.activeStake;
 
     if (isUnstakeAll) {
-      const chillTx = chainApi.api.tx.staking.chill();
-      const unbondTx = chainApi.api.tx.staking.unbond(binaryAmount);
+      const chillTx = chainApi.dedot.tx.staking.chill();
+      const unbondTx = chainApi.dedot.tx.staking.unbond(binaryAmount);
 
-      extrinsic = chainApi.api.tx.utility.batchAll([chillTx, unbondTx]);
+      extrinsic = chainApi.dedot.tx.utility.batchAll([chillTx.call, unbondTx.call]);
     } else {
-      extrinsic = chainApi.api.tx.staking.unbond(binaryAmount);
+      extrinsic = chainApi.dedot.tx.staking.unbond(binaryAmount);
     }
 
     return [ExtrinsicType.STAKING_LEAVE_POOL, extrinsic];

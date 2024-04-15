@@ -9,6 +9,7 @@ import { EarningRewardHistoryItem, EarningRewardItem, HandleYieldStepData, Optim
 import { noop } from '@polkadot/util';
 
 import BasePoolHandler from '../base';
+import type { PalletStakingRewardDestination } from "dedot/chaintypes/substrate/types";
 
 export default abstract class BaseNativeStakingPoolHandler extends BasePoolHandler {
   public readonly type = YieldPoolType.NATIVE_STAKING;
@@ -112,7 +113,7 @@ export default abstract class BaseNativeStakingPoolHandler extends BasePoolHandl
     ];
   }
 
-  abstract createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo, bondDest?: string): Promise<[TransactionData, YieldTokenBaseInfo]>
+  abstract createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo, bondDest?: string | PalletStakingRewardDestination): Promise<[TransactionData, YieldTokenBaseInfo]>
 
   protected async getSubmitStep (params: OptimalYieldPathParams): Promise<YieldStepBaseInfo> {
     const { address, amount, slug, targets } = params;

@@ -202,6 +202,10 @@ export class SubstrateChainHandler extends AbstractChainHandler {
   }
 
   public async initApi (chainSlug: string, apiUrl: string, { externalApiPromise, onUpdateStatus, providerName }: Omit<_ApiOptions, 'metadata'> = {}): Promise<SubstrateApi> {
+    if (apiUrl === 'wss://goldberg.avail.tools/ws') {
+      apiUrl = 'wss://rpc-testnet.avail.tools/ws';
+    }
+
     const existed = this.substrateApiMap[chainSlug];
 
     // Return existed to avoid re-init metadata

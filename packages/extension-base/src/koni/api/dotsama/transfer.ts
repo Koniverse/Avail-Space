@@ -11,7 +11,6 @@ import { _getContractAddressOfToken, _getTokenOnChainAssetId, _getTokenOnChainIn
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
 import { AccountInfoWithProviders, AccountInfoWithRefCount } from '@polkadot/types/interfaces';
-import { BN } from '@polkadot/util';
 
 function isRefCount (accountInfo: AccountInfoWithProviders | AccountInfoWithRefCount): accountInfo is AccountInfoWithRefCount {
   return !!(accountInfo as AccountInfoWithRefCount).refcount;
@@ -139,25 +138,28 @@ interface CreateTransferExtrinsicProps {
   tokenInfo: _ChainAsset,
 }
 
-export const createTransferExtrinsic = async ({ from, networkKey, substrateApi, to, tokenInfo, transferAll, value }: CreateTransferExtrinsicProps): Promise<[SubmittableExtrinsic | null, string]> => {
-  const api = substrateApi.api;
+export const createTransferExtrinsic = async ({ from, networkKey, substrateApi, to, tokenInfo, transferAll, value: _value }: CreateTransferExtrinsicProps): Promise<[SubmittableExtrinsic | null, string]> => {
+  const api = substrateApi.dedot;
+  const pjs = substrateApi.api;
+
+  const value = BigInt(_value);
 
   // @ts-ignore
   let transfer: SubmittableExtrinsic<'promise'> | null = null;
-  const isTxCurrenciesSupported = !!api && !!api.tx && !!api.tx.currencies;
-  const isTxBalancesSupported = !!api && !!api.tx && !!api.tx.balances;
-  const isTxTokensSupported = !!api && !!api.tx && !!api.tx.tokens;
+  const isTxCurrenciesSupported = !!api && !!api.tx && !!api.tx.currencies.transfer;
+  const isTxBalancesSupported = !!api && !!api.tx && !!api.tx.balances.transferKeepAlive;
+  const isTxTokensSupported = !!api && !!api.tx && !!api.tx.tokens.transfer;
   // const isTxEqBalancesSupported = !!api && !!api.tx && !!api.tx.eqBalances;
-  const isTxAssetsSupported = !!api && !!api.tx && !!api.tx.assets;
+  const isTxAssetsSupported = !!api && !!api.tx && !!api.tx.assets.transfer;
   let transferAmount; // for PSP-22 tokens, might be deprecated in the future
 
   if (_isTokenWasmSmartContract(tokenInfo) && api.query.contracts) {
-    const contractPromise = getPSP22ContractPromise(api, _getContractAddressOfToken(tokenInfo));
+    const contractPromise = getPSP22ContractPromise(pjs, _getContractAddressOfToken(tokenInfo));
     // @ts-ignore
-    const gasLimit = await getWasmContractGasLimit(api, from, 'psp22::transfer', contractPromise, {}, [from, value, {}]);
+    const gasLimit = await getWasmContractGasLimit(pjs, from, 'psp22::transfer', contractPromise, {}, [from, _value, {}]);
 
     // @ts-ignore
-    transfer = contractPromise.tx['psp22::transfer']({ gasLimit }, to, value, {});
+    transfer = contractPromise.tx['psp22::transfer']({ gasLimit }, to, _value, {});
     transferAmount = value;
   } else if (_TRANSFER_CHAIN_GROUP.acala.includes(networkKey)) {
     if (!_isNativeToken(tokenInfo)) {
@@ -168,20 +170,21 @@ export const createTransferExtrinsic = async ({ from, networkKey, substrateApi, 
       if (transferAll) {
         transfer = api.tx.balances.transferAll(to, false);
       } else if (value) {
-        transfer = api.tx.balances.transferKeepAlive(to, new BN(value));
+        transfer = api.tx.balances.transferKeepAlive(to, value);
       }
     }
+  // TODO verify below transfers
   } else if (_TRANSFER_CHAIN_GROUP.kintsugi.includes(networkKey) && isTxTokensSupported) {
     if (transferAll) {
       transfer = api.tx.tokens.transferAll(to, _getTokenOnChainInfo(tokenInfo) || _getTokenOnChainAssetId(tokenInfo), false);
     } else if (value) {
-      transfer = api.tx.tokens.transfer(to, _getTokenOnChainInfo(tokenInfo) || _getTokenOnChainAssetId(tokenInfo), new BN(value));
+      transfer = api.tx.tokens.transfer(to, _getTokenOnChainInfo(tokenInfo) || _getTokenOnChainAssetId(tokenInfo), value);
     }
   } else if (_TRANSFER_CHAIN_GROUP.pendulum.includes(networkKey) && isTxTokensSupported && !_isNativeToken(tokenInfo)) {
     if (transferAll) {
       transfer = api.tx.tokens.transferAll(to, _getTokenOnChainInfo(tokenInfo) || _getTokenOnChainAssetId(tokenInfo), false);
     } else if (value) {
-      transfer = api.tx.tokens.transfer(to, _getTokenOnChainInfo(tokenInfo) || _getTokenOnChainAssetId(tokenInfo), new BN(value));
+      transfer = api.tx.tokens.transfer(to, _getTokenOnChainInfo(tokenInfo) || _getTokenOnChainAssetId(tokenInfo), value);
     }
   } else if (
     _TRANSFER_CHAIN_GROUP.genshiro.includes(networkKey)
@@ -198,28 +201,28 @@ export const createTransferExtrinsic = async ({ from, networkKey, substrateApi, 
   } else if (_TRANSFER_CHAIN_GROUP.bitcountry.includes(networkKey) && !_isNativeToken(tokenInfo)) {
     transfer = api.tx.currencies.transfer(to, _getTokenOnChainInfo(tokenInfo), value);
   } else if (_TRANSFER_CHAIN_GROUP.statemine.includes(networkKey) && !_isNativeToken(tokenInfo)) {
-    transfer = api.tx.assets.transfer(_getTokenOnChainAssetId(tokenInfo), to, value);
+    transfer = api.tx.assets.transfer(parseInt(_getTokenOnChainAssetId(tokenInfo)), to, value);
     // } else if (_TRANSFER_CHAIN_GROUP.riochain.includes(networkKey)) {
     //   if (_isNativeToken(tokenInfo)) {
     //     transfer = api.tx.currencies.transferNativeCurrency(to, value);
     //   }
   } else if (_TRANSFER_CHAIN_GROUP.sora_substrate.includes(networkKey) && isTxAssetsSupported) {
-    transfer = api.tx.assets.transfer(_getTokenOnChainAssetId(tokenInfo), to, value);
+    transfer = api.tx.assets.transfer(parseInt(_getTokenOnChainAssetId(tokenInfo)), to, value);
   } else if (isTxBalancesSupported && _isNativeToken(tokenInfo)) {
     if (_TRANSFER_CHAIN_GROUP.disable_transfer.includes(networkKey)) {
-      return [null, transferAmount || value];
+      return [null, (transferAmount || value).toString()];
     }
 
     if (transferAll) {
       transfer = api.tx.balances.transferAll(to, false);
     } else if (value) {
       if (api.tx.balances.transferKeepAlive) {
-        transfer = api.tx.balances.transferKeepAlive(to, new BN(value));
+        transfer = api.tx.balances.transferKeepAlive(to, value);
       } else {
-        transfer = api.tx.balances.transfer(to, new BN(value));
+        transfer = api.tx.balances.transfer(to, value);
       }
     }
   }
 
-  return [transfer, transferAmount || value];
+  return [transfer, (transferAmount || value).toString()];
 };

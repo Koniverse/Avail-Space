@@ -26,10 +26,14 @@ import { BN, formatBalance } from '@polkadot/util';
 import { defaults as addressDefaults } from '@polkadot/util-crypto/address/defaults';
 
 import goldbergSpec from './chain-spec/goldberg';
+import { Dedot } from "dedot";
+import { CheckAppId, ProviderInterfaceAdapter } from "@subwallet/extension-base/services/chain-service/handler/dedot";
+import { RuntimeApis } from "@dedot/specs";
 
 export class SubstrateApi implements _SubstrateApi {
   chainSlug: string;
   api: ApiPromise;
+  dedot: Dedot;
   providerName?: string;
   provider: ProviderInterface;
   apiUrl: string;
@@ -87,7 +91,7 @@ export class SubstrateApi implements _SubstrateApi {
     }
   }
 
-  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): ApiPromise {
+  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): [ApiPromise, Dedot] {
     const apiOption: ApiOptions = {
       provider,
       typesBundle,
@@ -138,12 +142,37 @@ export class SubstrateApi implements _SubstrateApi {
       api = new ApiPromise(apiOption);
     }
 
-    api.on('ready', this.onReady.bind(this));
-    api.on('connected', this.onConnect.bind(this));
-    api.on('disconnected', this.onDisconnect.bind(this));
-    api.on('error', this.onError.bind(this));
+    const dedot = new Dedot({
+      provider: new ProviderInterfaceAdapter(provider),
+      throwOnUnknownApi: false,
+      runtimeApis: RuntimeApis,
+      signedExtensions: { CheckAppId }
+    });
+    dedot.connect().catch(console.error);
 
-    return api;
+    let apiReady = false;
+    let dedotReady = false;
+    const timer = setInterval(() => {
+      if (apiReady && dedotReady) {
+        this.onReady();
+        clearInterval(timer);
+        return;
+      }
+
+      api.once('ready', () => { apiReady = true });
+      dedot.once('ready', () => { dedotReady = true });
+    });
+
+    api.on('connected', this.onConnect.bind(this));
+    // dedot.on('connected', () => this.onConnect.bind(this));
+
+    api.on('disconnected', this.onDisconnect.bind(this));
+    // dedot.on('disconnected', () => this.onDisconnect.bind(this));
+
+    api.on('error', this.onError.bind(this));
+    dedot.on('error', () => this.onError.bind(this));
+
+    return [api, dedot];
   }
 
   constructor (chainSlug: string, apiUrl: string, { externalApiPromise, metadata, providerName }: _ApiOptions = {}) {
@@ -153,7 +182,7 @@ export class SubstrateApi implements _SubstrateApi {
     this.registry = new TypeRegistry();
     this.metadata = metadata;
     this.provider = this.createProvider(apiUrl);
-    this.api = this.createApi(this.provider, externalApiPromise);
+    [this.api, this.dedot] = this.createApi(this.provider, externalApiPromise);
 
     this.handleApiReady = createPromiseHandler<_SubstrateApi>();
   }
@@ -175,10 +204,12 @@ export class SubstrateApi implements _SubstrateApi {
     this.api.off('disconnected', this.onDisconnect.bind(this));
     this.api.off('error', this.onError.bind(this));
 
+    this.dedot.off('error', this.onError.bind(this));
+
     // Create new provider and api
     this.apiUrl = apiUrl;
     this.provider = this.createProvider(apiUrl);
-    this.api = this.createApi(this.provider);
+    [this.api, this.dedot] = this.createApi(this.provider);
   }
 
   connect (): void {
@@ -187,7 +218,7 @@ export class SubstrateApi implements _SubstrateApi {
     } else {
       this.updateConnectionStatus(_ChainConnectionStatus.CONNECTING);
 
-      this.api.connect()
+      Promise.all([this.api.connect(), this.dedot.connect()])
         .then(() => {
           this.api.isReady.then(() => {
             this.updateConnectionStatus(_ChainConnectionStatus.CONNECTED);
@@ -199,6 +230,7 @@ export class SubstrateApi implements _SubstrateApi {
   async disconnect () {
     try {
       await this.api.disconnect();
+      await this.dedot.disconnect();
     } catch (e) {
       console.error(e);
     }
@@ -257,9 +289,11 @@ export class SubstrateApi implements _SubstrateApi {
   }
 
   async fillApiInfo (): Promise<void> {
-    const { api, registry } = this;
+    const { api, dedot, registry } = this;
     const DEFAULT_DECIMALS = registry.createType('u32', 12);
     const DEFAULT_SS58 = registry.createType('u32', addressDefaults.prefix);
+
+    console.log('dedot connection status', dedot.status);
 
     this.specName = this.api.runtimeVersion.specName.toString();
     this.specVersion = this.api.runtimeVersion.specVersion.toString();

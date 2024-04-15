@@ -7268,7 +7268,7 @@
     "ordinal": 9999,
     "icon": "https://static-data.subwallet.app/chains/images/icon/avl_4f65922c68.png",
     "providers": {
-      "Avail Goldberg Testnet": "wss://goldberg.avail.tools/ws"
+      "Avail Goldberg Testnet": "wss://rpc-testnet.avail.tools/ws"
     },
     "evmInfo": null,
     "substrateInfo": {

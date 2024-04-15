@@ -7,6 +7,10 @@ import { TransactionConfig } from 'web3-core';
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
 import { EventRecord } from '@polkadot/types/interfaces';
+import { ISubmittableExtrinsic } from '@dedot/types';
+import { Extrinsic } from '@dedot/codecs';
+
+export type DedotExtrinsic = ISubmittableExtrinsic & Extrinsic;
 
 export interface SWTransaction extends ValidateTransactionResponse, Partial<Pick<BaseRequestSign, 'ignoreWarnings'>> {
   id: string;
@@ -22,7 +26,7 @@ export interface SWTransaction extends ValidateTransactionResponse, Partial<Pick
   createdAt: number;
   updatedAt: number;
   estimateFee?: FeeData,
-  transaction: SubmittableExtrinsic | TransactionConfig;
+  transaction: SubmittableExtrinsic | TransactionConfig | DedotExtrinsic;
   additionalValidator?: (inputTransaction: SWTransactionResponse) => Promise<void>;
   eventsHandler?: (eventEmitter: TransactionEmitter) => void;
 }
