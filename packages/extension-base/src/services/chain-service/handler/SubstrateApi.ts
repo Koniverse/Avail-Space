@@ -22,8 +22,7 @@ import { typesBundle } from '@polkadot/apps-config/api';
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
 import { TypeRegistry } from '@polkadot/types/create';
 import { Registry } from '@polkadot/types/types';
-import { BN, formatBalance } from '@polkadot/util';
-import { defaults as addressDefaults } from '@polkadot/util-crypto/address/defaults';
+import { formatBalance } from '@polkadot/util';
 
 import goldbergSpec from './chain-spec/goldberg';
 import { Dedot } from "dedot";
@@ -320,37 +319,29 @@ export class SubstrateApi implements _SubstrateApi {
 
   async fillApiInfo (): Promise<void> {
     const { api, dedot, registry } = this;
-    const DEFAULT_DECIMALS = registry.createType('u32', 12);
-    const DEFAULT_SS58 = registry.createType('u32', addressDefaults.prefix);
-
     console.log('dedot connection status', dedot.status);
 
-    this.specName = this.api.runtimeVersion.specName.toString();
-    this.specVersion = this.api.runtimeVersion.specVersion.toString();
+    this.specName = dedot.runtimeVersion.specName.toString();
+    this.specVersion = dedot.runtimeVersion.specVersion.toString();
 
-    const [systemChain, systemName, systemVersion] = await Promise.all([
-      api.rpc.system?.chain(),
-      api.rpc.system?.name(),
-      api.rpc.system?.version()
+    [this.systemChain, this.systemName, this.systemVersion] = await Promise.all([
+      dedot.rpc.system_chain(),
+      dedot.rpc.system_name(),
+      dedot.rpc.system_version()
     ]);
 
-    this.systemChain = systemChain.toString();
-    this.systemName = systemName.toString();
-    this.systemVersion = systemVersion.toString();
-
-    const properties = registry.createType('ChainProperties', { ss58Format: api.registry.chainSS58, tokenDecimals: api.registry.chainDecimals, tokenSymbol: api.registry.chainTokens });
-    const ss58Format = properties.ss58Format.unwrapOr(DEFAULT_SS58).toNumber();
-    const tokenSymbol = properties.tokenSymbol.unwrapOr([formatBalance.getDefaults().unit, ...DEFAULT_AUX]);
-    const tokenDecimals = properties.tokenDecimals.unwrapOr([DEFAULT_DECIMALS]);
+    const DEFAULT_DECIMALS = 12;
+    const properties = dedot.chainProperties;
+    const ss58Format = dedot.consts.system.ss58Prefix;
+    const tokenSymbol = properties.tokenSymbol ? [properties.tokenSymbol].flat() : [formatBalance.getDefaults().unit, ...DEFAULT_AUX];
+    const tokenDecimals = properties.tokenDecimals ? [properties.tokenDecimals].flat() : [DEFAULT_DECIMALS];
 
     registry.setChainProperties(registry.createType('ChainProperties', { ss58Format, tokenDecimals, tokenSymbol }));
 
     // first set up the UI helpers
     this.defaultFormatBalance = {
-      decimals: tokenDecimals.map((b: BN) => {
-        return b.toNumber();
-      }),
-      unit: tokenSymbol[0].toString()
+      decimals: tokenDecimals,
+      unit: tokenSymbol[0]
     };
 
     const defaultSection = Object.keys(api.tx)[0];
