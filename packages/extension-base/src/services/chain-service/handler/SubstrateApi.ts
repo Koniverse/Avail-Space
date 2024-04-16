@@ -91,7 +91,7 @@ export class SubstrateApi implements _SubstrateApi {
     }
   }
 
-  private async createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): Promise<[ApiPromise, Dedot]> {
+  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): [ApiPromise, Dedot] {
     const apiOption: ApiOptions = {
       provider,
       typesBundle,
@@ -149,32 +149,53 @@ export class SubstrateApi implements _SubstrateApi {
       signedExtensions: { CheckAppId },
       cacheMetadata: true
     });
+    dedot.connect().catch(console.error);
 
+    this.#awaitReady();
+
+    api.on('ready', this.#setApiReady);
+    dedot.on('ready', this.#setDedotReady);
     api.on('connected', this.onConnect.bind(this));
     api.on('disconnected', this.onDisconnect.bind(this));
     api.on('error', this.onError.bind(this));
     dedot.on('error', () => this.onError.bind(this));
 
-    if (provider instanceof WsProvider) {
-      await provider.isReady;
-    }
-
-    Promise.all([dedot.connect(), api.isReady])
-      .then(() => {
-        this.onReady()
-      })
-      .catch(console.error);
-
     return [api, dedot];
   }
 
-  protected constructor (chainSlug: string, apiUrl: string, { externalApiPromise, metadata, providerName }: _ApiOptions = {}) {
+  #apiReady = false;
+  #dedotReady = false;
+
+  #setApiReady = () => {
+    this.#apiReady = true;
+  }
+
+  #setDedotReady = () => {
+    this.#dedotReady = true;
+  }
+
+  #readyTimer?: ReturnType<typeof setInterval>;
+  #awaitReady = () => {
+    this.#readyTimer && clearInterval(this.#readyTimer);
+    this.#readyTimer = setInterval(() => {
+      if (this.#apiReady && this.#dedotReady) {
+        this.onReady();
+
+        clearInterval(this.#readyTimer);
+      }
+    })
+  }
+
+  constructor (chainSlug: string, apiUrl: string, { externalApiPromise, metadata, providerName }: _ApiOptions = {}) {
     this.chainSlug = chainSlug;
     this.apiUrl = apiUrl;
     this.providerName = providerName;
     this.registry = new TypeRegistry();
     this.metadata = metadata;
     this.handleApiReady = createPromiseHandler<_SubstrateApi>();
+
+    this.provider = this.createProvider(apiUrl);
+    [this.api, this.dedot] = this.createApi(this.provider, externalApiPromise);
   }
 
   static async new(chainSlug: string, apiUrl: string, options: _ApiOptions): Promise<SubstrateApi> {
@@ -195,18 +216,29 @@ export class SubstrateApi implements _SubstrateApi {
       return;
     }
 
+    console.log('Update URL', apiUrl, this.apiUrl);
+
     // Disconnect with old provider
     await this.disconnect();
+
     this.isApiReadyOnce = false;
+    this.#apiReady = false;
+    this.#dedotReady = false;
+    clearInterval(this.#readyTimer);
+    this.#readyTimer = undefined;
+
+    this.api.off('ready', this.#setApiReady);
     this.api.off('connected', this.onConnect.bind(this));
     this.api.off('disconnected', this.onDisconnect.bind(this));
     this.api.off('error', this.onError.bind(this));
+
+    this.dedot.off('ready', this.#setDedotReady);
     this.dedot.off('error', this.onError.bind(this));
 
     // Create new provider and api
     this.apiUrl = apiUrl;
     this.provider = this.createProvider(apiUrl);
-    [this.api, this.dedot] = await this.createApi(this.provider);
+    [this.api, this.dedot] = this.createApi(this.provider);
   }
 
   connect (): void {
@@ -247,6 +279,7 @@ export class SubstrateApi implements _SubstrateApi {
   }
 
   onReady (): void {
+    console.log('on ready!');
     this.fillApiInfo().then(() => {
       this.handleApiReady.resolve(this);
       this.isApiReady = true;

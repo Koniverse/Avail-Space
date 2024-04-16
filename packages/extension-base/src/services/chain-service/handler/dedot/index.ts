@@ -71,9 +71,7 @@ export class ProviderInterfaceAdapter extends EventEmitter<ProviderEvent> implem
   async connect(): Promise<this> {
     try {
       await this.inner.connect();
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
 
     return this
   }

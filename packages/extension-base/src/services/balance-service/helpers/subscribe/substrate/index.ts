@@ -98,6 +98,7 @@ const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo
 
   const balanceSubscribe: Observable<FrameSystemAccountInfo[]> = new Observable<FrameSystemAccountInfo[]>((subscriber) => {
     dedot.query.system.account.multi(addresses, (balances) => {
+      console.log(addresses, balances);
       subscriber.next(balances);
     })
   });
