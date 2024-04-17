@@ -142,7 +142,6 @@ export default class TransactionService {
     };
 
     const chainInfo = this.state.chainService.getChainInfoByKey(chain);
-    const { dedot } = this.state.chainService.getSubstrateApi(chain);
 
     if (!chainInfo) {
       validationResponse.errors.push(new TransactionError(BasicTxErrorType.INTERNAL_ERROR, t('Cannot find network')));
@@ -158,6 +157,7 @@ export default class TransactionService {
             estimateFee.value = (await transaction.paymentInfo(address)).partialFee.toString();
             // TODO add Dedot transaction
           } else if (isDedotSubstrateTransaction(transaction)) {
+            const { dedot } = this.state.chainService.getSubstrateApi(chain);
             const txU8a = transaction.toU8a();
             const paymentInfo = await dedot.call.transactionPaymentApi.queryInfo(txU8a, txU8a.length);
             estimateFee.value = paymentInfo.partialFee.toString();
