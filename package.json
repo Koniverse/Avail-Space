@@ -94,6 +94,7 @@
     "@subwallet/chain-list": "0.2.57",
     "@subwallet/keyring": "^0.1.5",
     "@subwallet/ui-keyring": "^0.1.5",
+    "@zondax/ledger-substrate": "^0.42.1",
     "babel-core": "^7.0.0-bridge.0",
     "babel-jest": "^29.3.1",
     "browserify-sign": "^4.2.2",
