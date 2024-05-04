@@ -207,7 +207,7 @@ export default class EarningService implements StoppableServiceInterface, Persis
         // Account changed or chain changed (active or inactive)
         // Chain changed (active or inactive)
         // Todo: Optimize performance of chain active or inactive in the future
-        if (eventTypes.includes('account.updateCurrent') || eventTypes.includes('account.remove') || eventTypes.includes('chain.updateState') || delayReload) {
+        if (eventTypes.includes('account.updateCurrent') || eventTypes.includes('account.add') || eventTypes.includes('account.remove') || eventTypes.includes('chain.updateState') || delayReload) {
           if (delayReload) {
             this.delayReloadTimeout = setTimeout(() => {
               this.reloadEarning().catch(console.error); // Timeout is removed inside reloadEarning > runUnsubscribePoolsPosition
@@ -502,8 +502,6 @@ export default class EarningService implements StoppableServiceInterface, Persis
     const removeKeys: string[] = [];
 
     chains && chains.length > 0 && Object.entries(this.yieldPositionSubject.getValue()).forEach(([key, value]) => {
-      console.log('removeYieldPositions', key, value.chain, chains.indexOf(value.chain) > -1);
-
       if (chains.indexOf(value.chain) > -1 && !removeKeys.includes(key)) {
         removeKeys.push(key);
       }

@@ -72,11 +72,11 @@ const defaultModalId = 'multi-validator-selector';
 
 const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
   const { chain, className = '', defaultValue, from
-    , id = defaultModalId, isSingleSelect: _isSingleSelect = false,
-    loading, onChange, slug
+    , id = defaultModalId, isSingleSelect: _isSingleSelect = false, onChange, slug
     , setForceFetchValidator, value } = props;
   const { t } = useTranslation();
   const { activeModal, checkActive } = useContext(ModalContext);
+  const defaultValueRef = useRef({ _default: '_', selected: '_' });
 
   useExcludeModal(id);
   const isActive = checkActive(id);
@@ -135,7 +135,7 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
     onApplyChangeValidators,
     onCancelSelectValidator,
     onChangeSelectedValidator,
-    onInitValidators } = useSelectValidators(id, chain, maxCount, onChange, isSingleSelect);
+    onInitValidators } = useSelectValidators(items, id, chain, maxCount, onChange, isSingleSelect);
 
   const [viewDetailItem, setViewDetailItem] = useState<ValidatorDataType | undefined>(undefined);
   const [sortSelection, setSortSelection] = useState<SortKey>(SortKey.DEFAULT);
@@ -291,11 +291,16 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
     const _default = nominations?.map((item) => getValidatorKey(item.validatorAddress, item.validatorIdentity)).join(',') || '';
     const selected = defaultValue || (isSingleSelect ? '' : _default);
 
+    if (defaultValueRef.current._default === _default && defaultValueRef.current.selected === selected) {
+      return;
+    }
+
     onInitValidators(_default, selected);
     onChange && onChange({ target: { value: selected } });
 
+    defaultValueRef.current = { _default, selected };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nominations, onInitValidators, isSingleSelect]);
+  }, [nominations, onInitValidators, isSingleSelect, defaultValue]);
 
   useEffect(() => {
     if (!isActive) {
@@ -316,9 +321,9 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
     <>
       <SelectValidatorInput
         chain={chain}
-        disabled={!chain || !from}
+        disabled={items.length < 1}
         label={t('Select') + ' ' + t(handleValidatorLabel)}
-        loading={loading}
+        loading={false}
         onClick={onActiveValidatorSelector}
         value={value || ''}
       />
@@ -331,19 +336,21 @@ const Component = (props: Props, ref: ForwardedRef<InputRef>) => {
           />
         )}
         footer={(
-          <Button
-            block
-            disabled={!changeValidators.length}
-            icon={(
-              <Icon
-                phosphorIcon={CheckCircle}
-                weight={'fill'}
-              />
-            )}
-            onClick={onApplyChangeValidators}
-          >
-            {t(applyLabel, { number: changeValidators.length })}
-          </Button>
+          <div style={{ display: 'flex', flexDirection: 'row' }}>
+            <Button
+              block
+              disabled={!changeValidators.length}
+              icon={(
+                <Icon
+                  phosphorIcon={CheckCircle}
+                  weight={'fill'}
+                />
+              )}
+              onClick={onApplyChangeValidators}
+            >
+              {t(applyLabel, { number: changeValidators.length })}
+            </Button>
+          </div>
         )}
         id={id}
         onCancel={onCancelSelectValidator}

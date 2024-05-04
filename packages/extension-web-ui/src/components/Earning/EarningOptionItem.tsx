@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { _ChainInfo } from '@subwallet/chain-list/types';
+import NetworkTag from '@subwallet/extension-web-ui/components/NetworkTag';
 import { useTranslation } from '@subwallet/extension-web-ui/hooks';
-import { ThemeProps, YieldGroupInfo } from '@subwallet/extension-web-ui/types';
+import { NetworkType, ThemeProps, YieldGroupInfo } from '@subwallet/extension-web-ui/types';
 import { isRelatedToAstar } from '@subwallet/extension-web-ui/utils';
 import { Icon, Logo, Number } from '@subwallet/react-ui';
 import CN from 'classnames';
@@ -16,13 +17,14 @@ type Props = ThemeProps & {
   onClick?: () => void;
   isShowBalance?: boolean;
   chain: _ChainInfo;
+  displayBalanceInfo?: boolean;
 }
 
 const Component: React.FC<Props> = (props: Props) => {
-  const { chain, className, isShowBalance, onClick, poolGroup } = props;
+  const { chain, className, displayBalanceInfo = true, isShowBalance, onClick, poolGroup } = props;
   const { t } = useTranslation();
 
-  const { balance, group, maxApy, symbol, token } = poolGroup;
+  const { balance, group, isTestnet, maxApy, symbol, token, totalValueStaked } = poolGroup;
 
   const _isRelatedToAstar = isRelatedToAstar(group);
 
@@ -52,6 +54,13 @@ const Component: React.FC<Props> = (props: Props) => {
                   </span>)
                 </span>
               )}
+
+              {isTestnet && <div className={'__item-tag-wrapper'}>
+                <NetworkTag
+                  className={'__item-tag'}
+                  type={isTestnet ? NetworkType.TEST_NETWORK : NetworkType.MAIN_NETWORK}
+                />
+              </div>}
             </div>
 
             {
@@ -72,19 +81,36 @@ const Component: React.FC<Props> = (props: Props) => {
             }
           </div>
           <div className='__item-line-2'>
-            <div className='__item-available-balance'>
-              <div className='__item-available-balance-label'>
-                {t('Available')}:
-              </div>
-              <div className={'__item-available-balance-value'}>
-                <Number
-                  decimal={0}
-                  hide={!isShowBalance}
-                  suffix={symbol}
-                  value={balance.value}
-                />
-              </div>
-            </div>
+            {
+              displayBalanceInfo
+                ? (
+                  <div className='__item-available-balance'>
+                    <div className='__item-available-balance-label'>
+                      {t('Available')}:
+                    </div>
+                    <div className={'__item-available-balance-value'}>
+                      <Number
+                        decimal={0}
+                        hide={!isShowBalance}
+                        suffix={symbol}
+                        value={balance.value}
+                      />
+                    </div>
+                  </div>
+                )
+                : (
+                  <div className='__item-total-stake'>
+                    <div className='__item-total-stake-label'>{t('Total staked')}:</div>
+
+                    <Number
+                      className={'__item-total-stake-value'}
+                      decimal={0}
+                      prefix={'$'}
+                      value={totalValueStaked}
+                    />
+                  </div>
+                )
+            }
             {
               !_isRelatedToAstar && !!maxApy && (
                 <div className='__item-time'>
@@ -141,6 +167,11 @@ const EarningOptionItem = styled(Component)<Props>(({ theme: { token } }: Props)
       gap: 10
     },
 
+    '.__item-tag-wrapper': {
+      display: 'flex',
+      alignItems: 'center'
+    },
+
     '.__item-logo': {
       marginRight: token.marginXS
     },
@@ -185,7 +216,7 @@ const EarningOptionItem = styled(Component)<Props>(({ theme: { token } }: Props)
       }
     },
 
-    '.__item-upto-label, .__item-available-balance-label': {
+    '.__item-upto-label, .__item-available-balance-label, .__item-total-stake-label': {
       fontSize: token.fontSizeSM,
       lineHeight: token.lineHeightSM,
       color: token.colorTextLight4,
@@ -194,7 +225,7 @@ const EarningOptionItem = styled(Component)<Props>(({ theme: { token } }: Props)
       display: 'flex'
     },
 
-    '.__item-available-balance': {
+    '.__item-available-balance, .__item-total-stake': {
       display: 'flex',
       gap: token.sizeXXS
     },
@@ -219,7 +250,7 @@ const EarningOptionItem = styled(Component)<Props>(({ theme: { token } }: Props)
       lineHeight: token.lineHeightSM
     },
 
-    '.__item-upto-value, .__item-available-balance-value': {
+    '.__item-upto-value, .__item-available-balance-value, .__item-total-stake-value': {
       '.ant-number, .ant-typography': {
         color: 'inherit !important',
         fontSize: 'inherit !important',
@@ -228,7 +259,7 @@ const EarningOptionItem = styled(Component)<Props>(({ theme: { token } }: Props)
       }
     },
 
-    '.__item-available-balance-value': {
+    '.__item-available-balance-value, .__item-total-stake-value': {
       fontSize: token.fontSizeSM,
       lineHeight: token.lineHeightSM,
       color: token.colorTextLight4

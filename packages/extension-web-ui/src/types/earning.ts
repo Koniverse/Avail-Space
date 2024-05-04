@@ -22,6 +22,11 @@ export enum EarningEntryView {
   POSITIONS= 'positions',
 }
 
+export enum NetworkType {
+  MAIN_NETWORK = 'MAIN_NETWORK',
+  TEST_NETWORK = 'TEST_NETWORK',
+}
+
 export type ExtraYieldPositionInfo = YieldPositionInfo & {
   asset: _ChainAsset;
   price: number;
@@ -42,6 +47,7 @@ export interface YieldGroupInfo {
   description: string;
   totalValueStaked: BigN;
   minJoin?: string;
+  isRelatedToRelayChain: boolean;
 }
 
 export interface EarningTagType {
