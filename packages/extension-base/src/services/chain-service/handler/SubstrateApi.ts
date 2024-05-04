@@ -197,15 +197,6 @@ export class SubstrateApi implements _SubstrateApi {
     [this.api, this.dedot] = this.createApi(this.provider, externalApiPromise);
   }
 
-  static async new(chainSlug: string, apiUrl: string, options: _ApiOptions): Promise<SubstrateApi> {
-    const instance = new SubstrateApi(chainSlug, apiUrl, options);
-
-    instance.provider = instance.createProvider(apiUrl);
-    [instance.api, instance.dedot] = await instance.createApi(instance.provider, options.externalApiPromise);
-
-    return instance;
-  }
-
   get isReady (): Promise<_SubstrateApi> {
     return this.handleApiReady.promise;
   }
@@ -331,7 +322,7 @@ export class SubstrateApi implements _SubstrateApi {
     ]);
 
     const DEFAULT_DECIMALS = 12;
-    const properties = dedot.chainProperties;
+    const properties = await dedot.rpc.system_properties();
     const ss58Format = dedot.consts.system.ss58Prefix;
     const tokenSymbol = properties.tokenSymbol ? [properties.tokenSymbol].flat() : [formatBalance.getDefaults().unit, ...DEFAULT_AUX];
     const tokenDecimals = properties.tokenDecimals ? [properties.tokenDecimals].flat() : [DEFAULT_DECIMALS];

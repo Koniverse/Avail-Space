@@ -105,7 +105,7 @@ const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo
 
   let poolSubscribe: Observable<(PalletNominationPoolsPoolMember | undefined)[]>;
 
-  if ((_isSubstrateRelayChain(chainInfo) && dedot.query.nominationPools)) {
+  if ((_isSubstrateRelayChain(chainInfo) && !!dedot.query.nominationPools.poolMembers)) {
     poolSubscribe = new Observable((subscriber) => {
       dedot.query.nominationPools.poolMembers.multi(addresses, (balances) => {
         subscriber.next(balances);

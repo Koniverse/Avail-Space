@@ -1192,20 +1192,19 @@ export default class TransactionService {
     console.log('transaction', transaction);
 
     const dedotTx = !!(transaction as any).$Codec;
-    if (dedotTx && transaction) {
+    if (dedotTx && isObject<DedotExtrinsic>(transaction)) {
       // const api = this.state.chainService.getSubstrateApi(chain);
-      (transaction as DedotExtrinsic).sign(address, { signer }).then(async (rs) => {
+      transaction.sign(address, { signer }).then(async (rs) => {
         console.log('rs', rs);
         // Emit signed event
         emitter.emit('signed', eventData);
 
         // Send transaction
-        const api = this.state.chainService.getSubstrateApi(chain);
+        const { dedot } = this.state.chainService.getSubstrateApi(chain);
 
-        // TODO expose nonce from dedot side
-        // eventData.nonce = rs.nonce.toNumber();
-        eventData.nonce = (await api.dedot.query.system.account(address)).nonce; // TODO -1 ?
-        eventData.startBlock = (await api.dedot.query.system.number()) as number;
+        const signedExtensionIdents = dedot.metadata.latest.extrinsic.signedExtensions.map(({ident}) => ident);
+        eventData.nonce = (transaction.signature!.extra as any[]).at(signedExtensionIdents.findIndex(ident => ident === 'CheckNonce')) as number;
+        eventData.startBlock = (await dedot.query.system.number()) as number;
         this.handleTransactionTimeout(emitter, eventData);
         emitter.emit('send', eventData); // This event is needed after sending transaction with queue
 
