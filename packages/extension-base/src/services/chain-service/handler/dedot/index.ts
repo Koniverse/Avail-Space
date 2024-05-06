@@ -19,8 +19,6 @@ const overrideBigIntEncode = (shape: $.AnyShape) => {
       nextValue = BigInt(value.toString());
     }
 
-    console.log('before encode', value, nextValue);
-
     return originSubEncode(buffer, nextValue as never);
   };
 }
@@ -32,8 +30,6 @@ overrideBigIntEncode($.u256);
 overrideBigIntEncode($.compact($.u64));
 overrideBigIntEncode($.compact($.u128));
 overrideBigIntEncode($.compact($.u256));
-
-console.log('DONE SHAPES OVERRIDE');
 
 
 export class CheckAppId extends SignedExtension<number> {
@@ -76,8 +72,8 @@ export class ProviderInterfaceAdapter extends EventEmitter<ProviderEvent> implem
     return this
   }
 
-  disconnect(): Promise<void> {
-    return this.inner.disconnect();
+  async disconnect(): Promise<void> {
+    await this.inner.disconnect();
   }
 
   send<T = any>(method: string, params: any[]): Promise<T> {
