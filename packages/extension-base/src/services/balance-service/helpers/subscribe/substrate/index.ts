@@ -18,7 +18,7 @@ import { BN, BN_ZERO } from '@polkadot/util';
 
 import { subscribeERC20Interval } from '../evm';
 import { subscribeEquilibriumTokenBalance } from './equilibrium';
-import { FrameSystemAccountInfo, PalletNominationPoolsPoolMember } from "dedot";
+import { FrameSystemAccountInfo, PalletNominationPoolsPoolMember } from "dedot/chaintypes";
 
 export const subscribeSubstrateBalance = async (addresses: string[], chainInfo: _ChainInfo, assetMap: Record<string, _ChainAsset>, substrateApi: _SubstrateApi, evmApi: _EvmApi, callback: (rs: BalanceItem[]) => void) => {
   let unsubNativeToken: () => void;

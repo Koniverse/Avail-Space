@@ -22,7 +22,7 @@ import { BN, BN_ZERO } from '@polkadot/util';
 
 import BaseNativeStakingPoolHandler from './base';
 import { DedotExtrinsic } from "@subwallet/extension-base/services/transaction-service/types";
-import type { PalletStakingRewardDestination } from "dedot";
+import type { PalletStakingRewardDestination } from "dedot/chaintypes";
 
 export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPoolHandler {
   /* Subscribe pool info */
