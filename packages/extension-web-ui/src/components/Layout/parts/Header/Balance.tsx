@@ -8,7 +8,6 @@ import { BUY_TOKEN_MODAL, DEFAULT_TRANSFER_PARAMS, TRANSACTION_TRANSFER_MODAL, T
 import { DataContext } from '@subwallet/extension-web-ui/contexts/DataContext';
 import { HomeContext } from '@subwallet/extension-web-ui/contexts/screen/HomeContext';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
-import { BackgroundColorMap, WebUIContext } from '@subwallet/extension-web-ui/contexts/WebUIContext';
 import { useNotification, useReceiveQR, useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
 import { reloadCron, saveShowBalance } from '@subwallet/extension-web-ui/messaging';
 import BuyTokens from '@subwallet/extension-web-ui/Popup/BuyTokens';
@@ -25,6 +24,8 @@ import { useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useLocalStorage } from 'usehooks-ts';
 
+import { isEthereumAddress } from '@polkadot/util-crypto';
+
 export type Props = ThemeProps
 
 type Action = {
@@ -38,7 +39,6 @@ type Action = {
 function Component ({ className }: Props): React.ReactElement<Props> {
   const dataContext = useContext(DataContext);
   const { isWebUI } = useContext(ScreenContext);
-  const { setBackground } = useContext(WebUIContext);
   const locationPathname = useLocation().pathname;
   const tokenGroupSlug = useParams()?.slug;
   const isShowBalance = useSelector((state: RootState) => state.settings.isShowBalance);
@@ -69,11 +69,11 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     selectedNetwork,
     tokenSelectorItems } = useReceiveQR(_tokenGroupSlug);
 
-  const currentAccount = useSelector((state) => state.accountState.currentAccount);
   const { tokens } = useSelector((state) => state.buyService);
   const [sendFundKey, setSendFundKey] = useState<string>('sendFundKey');
   const [buyTokensKey, setBuyTokensKey] = useState<string>('buyTokensKey');
   const [buyTokenSymbol, setBuyTokenSymbol] = useState<string>('');
+  const { currentAccount, isAllAccount } = useSelector((state) => state.accountState);
   const notify = useNotification();
 
   const isTotalBalanceDecrease = totalBalanceInfo.change.status === 'decrease';
@@ -162,11 +162,11 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     setBuyTokensKey(`buyTokensKey-${Date.now()}`);
   }, [locationPathname]);
 
-  useEffect(() => {
-    const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
-
-    setBackground(backgroundColor);
-  }, [isTotalBalanceDecrease, setBackground]);
+  // useEffect(() => {
+  //   const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
+  //
+  //   setBackground(backgroundColor);
+  // }, [isTotalBalanceDecrease, setBackground]);
 
   const handleCancelTransfer = useCallback(() => {
     inactiveModal(TRANSACTION_TRANSFER_MODAL);
@@ -195,27 +195,30 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       });
   }, []);
 
-  const actions: Action[] = [
-    {
-      label: 'Receive',
-      type: 'receive',
-      icon: ArrowFatLinesDown,
-      onClick: onOpenReceive
-    },
-    {
-      label: 'Send',
-      type: 'send',
-      icon: PaperPlaneTilt,
-      onClick: onOpenSendFund
-    },
-    {
-      label: 'Buy',
-      type: 'buys',
-      icon: ShoppingCartSimple,
-      onClick: onOpenBuyTokens,
-      disabled: !isSupportBuyTokens
-    }
-  ];
+  const actions: Action[] = useMemo(() =>
+    (
+      [
+        {
+          label: 'Receive',
+          type: 'receive',
+          icon: ArrowFatLinesDown,
+          onClick: onOpenReceive
+        },
+        {
+          label: 'Send',
+          type: 'send',
+          icon: PaperPlaneTilt,
+          onClick: onOpenSendFund
+        },
+        {
+          label: 'Buy',
+          type: 'buys',
+          icon: ShoppingCartSimple,
+          onClick: onOpenBuyTokens,
+          disabled: !isSupportBuyTokens || !(isAllAccount || isEthereumAddress(currentAccount?.address))
+        }
+      ]
+    ), [currentAccount?.address, isAllAccount, isSupportBuyTokens, onOpenBuyTokens, onOpenReceive, onOpenSendFund]);
 
   return (
     <div className={CN(className, 'flex-row')}>
@@ -445,7 +448,7 @@ const Balance = styled(Component)<Props>(({ theme: { token } }: Props) => ({
 
   '.__block-divider': {
     height: 116,
-    width: 1,
+    width: 2,
     backgroundColor: token.colorBgDivider,
     marginTop: token.marginSM
   },

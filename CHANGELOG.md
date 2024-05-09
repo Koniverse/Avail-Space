@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 1.1.62
+Build date: May 08, 2024.
+
+Features & Update:
+- Add more currency type (#2738, #3011)
+- Disallow staking to collators/pools that maxed out member threshold (#2743, 2754)
+- Display list Recommended by label in Select pool screen (#2940)
+
+Bugs fixed:
+- Fixed bug Don't display network on Mission pool details (#3005)
+- Fixed bug Can't hit the "Confirm" button on ToS of the Swap feature (#3007)
+- Fixed bug Error getting wrong validator address (#2821)
+- Update Validator name/ Collator name (#2998)
+
+## 1.1.61
+Build date: May 02, 2024.
+
+Features & Update:
+- Hide popup Introducing Earning feature (#2948)
+
+Bugs fixed:
+- Fixed bug Cannot read properties of undefined (reading 'length') (#2986)
+- Fixed bug related to earning feature (#2680)
+
+## 1.1.60
+Build date: Apl 30, 2024.
+
+Features & Update:
+- Add support Mythos chain (#2966)
+- Set default pool for Avail Turing (#2971)
+
 ## 1.1.59
 Build date: Apl 25, 2024.
 

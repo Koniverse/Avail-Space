@@ -20,7 +20,6 @@ import { WebUIContext } from '@subwallet/extension-web-ui/contexts/WebUIContext'
 import { useChainConnection, useFetchChainState, useGetBalance, useGetNativeTokenSlug, useInitValidateTransaction, usePreCheckAction, useRestoreTransaction, useSelector, useSetSelectedAccountTypes, useTransactionContext, useWatchTransaction, useYieldPositionDetail } from '@subwallet/extension-web-ui/hooks';
 import { insufficientMessages } from '@subwallet/extension-web-ui/hooks/transaction/useHandleSubmitTransaction';
 import { fetchPoolTarget, getOptimalYieldPath, submitJoinYieldPool, validateYieldProcess } from '@subwallet/extension-web-ui/messaging';
-// import { unlockDotCheckCanMint } from '@subwallet/extension-web-ui/messaging/campaigns';
 import { DEFAULT_YIELD_PROCESS, EarningActionType, earningReducer } from '@subwallet/extension-web-ui/reducer';
 import { store } from '@subwallet/extension-web-ui/stores';
 import { EarnParams, FormCallbacks, FormFieldData, Theme, ThemeProps } from '@subwallet/extension-web-ui/types';
@@ -134,9 +133,7 @@ const Component = ({ className }: ComponentProps) => {
   const [checkCompoundLoading, setCheckCompoundLoading] = useState(true);
   const [submitString, setSubmitString] = useState<string | undefined>();
   const [connectionError, setConnectionError] = useState<string>();
-  // const [, setCanMint] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
-  // const [checkMintLoading, setCheckMintLoading] = useState(false);
   const [isFormInvalid, setIsFormInvalid] = useState(true);
 
   const chainState = useFetchChainState(poolInfo?.chain || '');
@@ -177,7 +174,6 @@ const Component = ({ className }: ComponentProps) => {
 
   const isDisabledButton = useMemo(
     () =>
-      // checkMintLoading ||
       stepLoading ||
       !!connectionError ||
       !amountValue ||
@@ -635,12 +631,12 @@ const Component = ({ className }: ComponentProps) => {
               />
             );
           })}
-        {minJoinPool && (
+        {(
           <MetaInfo.Number
             decimals={assetDecimals}
             label={t('Minimum active stake')}
             suffix={assetSymbol}
-            value={minJoinPool}
+            value={minJoinPool || 0}
           />
         )}
 
@@ -1312,7 +1308,7 @@ const Component = ({ className }: ComponentProps) => {
                         defaultValue={defaultData.target === 'not-support' || !!compound ? '' : defaultData.target}
                         disabled={submitLoading}
                         from={fromValue}
-                        label={t('Select pool')}
+                        label={t('Pool')}
                         loading={targetLoading}
                         setForceFetchValidator={setForceFetchValidator}
                         slug={slug}

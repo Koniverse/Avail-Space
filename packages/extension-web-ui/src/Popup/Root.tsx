@@ -8,6 +8,7 @@ import BaseWeb from '@subwallet/extension-web-ui/components/Layout/base/BaseWeb'
 import { Logo2D } from '@subwallet/extension-web-ui/components/Logo';
 import { DEFAULT_ROUTER_PATH } from '@subwallet/extension-web-ui/constants/router';
 import { DataContext } from '@subwallet/extension-web-ui/contexts/DataContext';
+import { InjectContext } from '@subwallet/extension-web-ui/contexts/InjectContext';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { WalletModalContext } from '@subwallet/extension-web-ui/contexts/WalletModalContext';
 import { useSubscribeLanguage } from '@subwallet/extension-web-ui/hooks';
@@ -95,6 +96,7 @@ interface RedirectProps {
 }
 
 function DefaultRoute ({ children }: {children: React.ReactNode}): React.ReactElement {
+  const { loadingInject } = useContext(InjectContext);
   const dataContext = useContext(DataContext);
   const screenContext = useContext(ScreenContext);
   const location = useLocation();
@@ -264,12 +266,15 @@ function DefaultRoute ({ children }: {children: React.ReactNode}): React.ReactEl
     }
   }, [currentAccount, initAccount]);
 
-  if (rootLoading || redirectTarget.redirect) {
-    return <>{redirectTarget.redirect && <Navigate to={redirectTarget.redirect} />}</>;
+  if (rootLoading || loadingInject) {
+    return (<></>);
   } else {
-    return <MainWrapper className={CN('main-page-container', `screen-size-${screenContext.screenType}`, { 'web-ui-enable': screenContext.isWebUI })}>
-      {children}
-    </MainWrapper>;
+    return (<>
+      {redirectTarget.redirect && <Navigate to={redirectTarget.redirect} />}
+      <MainWrapper className={CN('main-page-container', `screen-size-${screenContext.screenType}`, { 'web-ui-enable': screenContext.isWebUI })}>
+        {children}
+      </MainWrapper>
+    </>);
   }
 }
 

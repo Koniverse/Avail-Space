@@ -1,7 +1,6 @@
 // Copyright 2019-2022 @subwallet/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { PHISHING_PAGE_REDIRECT } from '@subwallet/extension-base/defaults';
 import { PageWrapper } from '@subwallet/extension-web-ui/components';
 import ErrorFallback from '@subwallet/extension-web-ui/Popup/ErrorFallback';
 import { Root } from '@subwallet/extension-web-ui/Popup/Root';
@@ -50,7 +49,7 @@ export class LazyLoader {
   }
 }
 
-const PhishingDetected = new LazyLoader('PhishingDetected', () => import('@subwallet/extension-web-ui/Popup/PhishingDetected'));
+// const PhishingDetected = new LazyLoader('PhishingDetected', () => import('@subwallet/extension-web-ui/Popup/PhishingDetected'));
 const Welcome = new LazyLoader('Welcome', () => import('@subwallet/extension-web-ui/Popup/Welcome'));
 const CreateDone = new LazyLoader('CreateDone', () => import('@subwallet/extension-web-ui/Popup/CreateDone'));
 const RedirectHandler = new LazyLoader('RedirectHandler', () => import('@subwallet/extension-web-ui/Popup/RedirectHandler'));
@@ -68,7 +67,7 @@ const InscriptionItems = new LazyLoader('InscriptionItems', () => import('@subwa
 const InscriptionItemDetail = new LazyLoader('InscriptionItemDetail', () => import('@subwallet/extension-web-ui/Popup/Home/Inscriptions/InscriptionItemDetail'));
 
 const History = new LazyLoader('History', () => import('@subwallet/extension-web-ui/Popup/Home/History'));
-const Crowdloans = new LazyLoader('Crowdloans', () => import('@subwallet/extension-web-ui/Popup/Home/Crowdloans'));
+// const Crowdloans = new LazyLoader('Crowdloans', () => import('@subwallet/extension-web-ui/Popup/Home/Crowdloans'));
 const Home = new LazyLoader('Home', () => import('@subwallet/extension-web-ui/Popup/Home'));
 const Statistics = new LazyLoader('Statistics', () => import('@subwallet/extension-web-ui/Popup/Home/Statistics'));
 
@@ -89,11 +88,11 @@ const SecurityList = new LazyLoader('SecurityList', () => import('@subwallet/ext
 const ManageWebsiteAccess = new LazyLoader('ManageWebsiteAccess', () => import('@subwallet/extension-web-ui/Popup/Settings/Security/ManageWebsiteAccess'));
 const ManageWebsiteAccessDetail = new LazyLoader('ManageWebsiteAccessDetail', () => import('@subwallet/extension-web-ui/Popup/Settings/Security/ManageWebsiteAccess/Detail'));
 
-const NewSeedPhrase = new LazyLoader('NewSeedPhrase', () => import('@subwallet/extension-web-ui/Popup/Account/NewSeedPhrase'));
-const ImportSeedPhrase = new LazyLoader('ImportSeedPhrase', () => import('@subwallet/extension-web-ui/Popup/Account/ImportSeedPhrase'));
-const ImportPrivateKey = new LazyLoader('ImportPrivateKey', () => import('@subwallet/extension-web-ui/Popup/Account/ImportPrivateKey'));
-const RestoreJson = new LazyLoader('RestoreJson', () => import('@subwallet/extension-web-ui/Popup/Account/RestoreJson'));
-const ImportQrCode = new LazyLoader('ImportQrCode', () => import('@subwallet/extension-web-ui/Popup/Account/ImportQrCode'));
+// const NewSeedPhrase = new LazyLoader('NewSeedPhrase', () => import('@subwallet/extension-web-ui/Popup/Account/NewSeedPhrase'));
+// const ImportSeedPhrase = new LazyLoader('ImportSeedPhrase', () => import('@subwallet/extension-web-ui/Popup/Account/ImportSeedPhrase'));
+// const ImportPrivateKey = new LazyLoader('ImportPrivateKey', () => import('@subwallet/extension-web-ui/Popup/Account/ImportPrivateKey'));
+// const RestoreJson = new LazyLoader('RestoreJson', () => import('@subwallet/extension-web-ui/Popup/Account/RestoreJson'));
+// const ImportQrCode = new LazyLoader('ImportQrCode', () => import('@subwallet/extension-web-ui/Popup/Account/ImportQrCode'));
 const AttachReadOnly = new LazyLoader('AttachReadOnly', () => import('@subwallet/extension-web-ui/Popup/Account/AttachReadOnly'));
 const ConnectPolkadotVault = new LazyLoader('ConnectPolkadotVault', () => import('@subwallet/extension-web-ui/Popup/Account/ConnectQrSigner/ConnectPolkadotVault'));
 const ConnectKeystone = new LazyLoader('ConnectKeystone', () => import('@subwallet/extension-web-ui/Popup/Account/ConnectQrSigner/ConnectKeystone'));
@@ -105,7 +104,7 @@ const ChangePassword = new LazyLoader('ChangePassword', () => import('@subwallet
 const ApplyMasterPassword = new LazyLoader('ApplyMasterPassword', () => import('@subwallet/extension-web-ui/Popup/Keyring/ApplyMasterPassword'));
 
 const AccountDetail = new LazyLoader('AccountDetail', () => import('@subwallet/extension-web-ui/Popup/Account/AccountDetail'));
-const AccountExport = new LazyLoader('AccountExport', () => import('@subwallet/extension-web-ui/Popup/Account/AccountExport'));
+// const AccountExport = new LazyLoader('AccountExport', () => import('@subwallet/extension-web-ui/Popup/Account/AccountExport'));
 
 const Transaction = new LazyLoader('Transaction', () => import('@subwallet/extension-web-ui/Popup/Transaction/Transaction'));
 const TransactionDone = new LazyLoader('TransactionDone', () => import('@subwallet/extension-web-ui/Popup/TransactionDone'));
@@ -116,7 +115,7 @@ const Unstake = new LazyLoader('Unstake', () => import('@subwallet/extension-web
 const CancelUnstake = new LazyLoader('CancelUnstake', () => import('@subwallet/extension-web-ui/Popup/Transaction/variants/CancelUnstake'));
 const ClaimReward = new LazyLoader('ClaimReward', () => import('@subwallet/extension-web-ui/Popup/Transaction/variants/ClaimReward'));
 const Withdraw = new LazyLoader('Withdraw', () => import('@subwallet/extension-web-ui/Popup/Transaction/variants/Withdraw'));
-const SwapTransaction = new LazyLoader('SwapTransaction', () => import('@subwallet/extension-web-ui/Popup/Transaction/variants/Swap'));
+// const SwapTransaction = new LazyLoader('SwapTransaction', () => import('@subwallet/extension-web-ui/Popup/Transaction/variants/Swap'));
 
 // Wallet Connect
 const ConnectWalletConnect = new LazyLoader('ConnectWalletConnect', () => import('@subwallet/extension-web-ui/Popup/WalletConnect/ConnectWalletConnect'));
@@ -125,7 +124,7 @@ const ConnectionDetail = new LazyLoader('ConnectionDetail', () => import('@subwa
 
 // DApps
 
-const DApps = new LazyLoader('DApps', () => import('@subwallet/extension-web-ui/Popup/DApps'));
+// const DApps = new LazyLoader('DApps', () => import('@subwallet/extension-web-ui/Popup/DApps'));
 
 const EarningEntry = new LazyLoader('EarningEntry', () => import('@subwallet/extension-web-ui/Popup/Home/Earning/EarningEntry'));
 const EarningPools = new LazyLoader('EarningPools', () => import('@subwallet/extension-web-ui/Popup/Home/Earning/EarningPools'));
@@ -137,11 +136,11 @@ const EarningPreviewOutlet = new LazyLoader('EarningPreviewOutlet', () => import
 // const EarningDoneOutlet = new LazyLoader('EarningDoneOutlet', () => import('@subwallet/extension-web-ui/Popup/EarningDone/Outlet'));
 // const EarningDoneContent = new LazyLoader('EarningDoneContent', () => import('@subwallet/extension-web-ui/Popup/EarningDone/Content'));
 
-const CrowdloanUnlockCampaign = new LazyLoader('CrowdloanUnlockCampaign', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign'));
-const CheckCrowdloanContributions = new LazyLoader('CrowdloanContributionsResult', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign/CheckCrowdloanContributions'));
-const CrowdloanContributionsResult = new LazyLoader('CrowdloanContributionsResult', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign/CrowdloanContributionsResult'));
+// const CrowdloanUnlockCampaign = new LazyLoader('CrowdloanUnlockCampaign', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign'));
+// const CheckCrowdloanContributions = new LazyLoader('CrowdloanContributionsResult', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign/CheckCrowdloanContributions'));
+// const CrowdloanContributionsResult = new LazyLoader('CrowdloanContributionsResult', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign/CrowdloanContributionsResult'));
 
-const MissionPool = new LazyLoader('MissionPool', () => import('@subwallet/extension-web-ui/Popup/MissionPool'));
+// const MissionPool = new LazyLoader('MissionPool', () => import('@subwallet/extension-web-ui/Popup/MissionPool'));
 
 /* 404 */
 
@@ -201,7 +200,7 @@ export const router = createBrowserRouter([
               InscriptionItemDetail.generateRouterObject('item-detail')
             ]
           },
-          Crowdloans.generateRouterObject('crowdloans'),
+          // Crowdloans.generateRouterObject('crowdloans'),
           {
             path: 'earning',
             element: <Outlet />,
@@ -211,10 +210,10 @@ export const router = createBrowserRouter([
               EarningPositionDetail.generateRouterObject('position-detail')
             ]
           },
-          MissionPool.generateRouterObject('mission-pools'),
+          // MissionPool.generateRouterObject('mission-pools'),
           History.generateRouterObject('history'),
-          History.generateRouterObject('history/:address/:chain/:extrinsicHashOrId'),
-          DApps.generateRouterObject('dapps')
+          History.generateRouterObject('history/:address/:chain/:extrinsicHashOrId')
+          // DApps.generateRouterObject('dapps')
         ]
       },
       {
@@ -227,7 +226,7 @@ export const router = createBrowserRouter([
           CancelUnstake.generateRouterObject('cancel-unstake'),
           ClaimReward.generateRouterObject('claim-reward'),
           Withdraw.generateRouterObject('withdraw'),
-          SwapTransaction.generateRouterObject('swap'),
+          // SwapTransaction.generateRouterObject('swap'),
           {
             path: 'compound',
             element: <Example />
@@ -290,17 +289,17 @@ export const router = createBrowserRouter([
         path: 'accounts',
         element: <Outlet />,
         children: [
-          NewSeedPhrase.generateRouterObject('new-seed-phrase'),
-          ImportSeedPhrase.generateRouterObject('import-seed-phrase'),
-          ImportPrivateKey.generateRouterObject('import-private-key'),
-          RestoreJson.generateRouterObject('restore-json'),
-          ImportQrCode.generateRouterObject('import-by-qr'),
+          // NewSeedPhrase.generateRouterObject('new-seed-phrase'),
+          // ImportSeedPhrase.generateRouterObject('import-seed-phrase'),
+          // ImportPrivateKey.generateRouterObject('import-private-key'),
+          // RestoreJson.generateRouterObject('restore-json'),
+          // ImportQrCode.generateRouterObject('import-by-qr'),
           AttachReadOnly.generateRouterObject('attach-read-only'),
           ConnectPolkadotVault.generateRouterObject('connect-polkadot-vault'),
           ConnectKeystone.generateRouterObject('connect-keystone'),
           ConnectLedger.generateRouterObject('connect-ledger'),
-          AccountDetail.generateRouterObject('detail/:accountAddress'),
-          AccountExport.generateRouterObject('export/:accountAddress')
+          AccountDetail.generateRouterObject('detail/:accountAddress')
+          // AccountExport.generateRouterObject('export/:accountAddress')
         ]
       },
       {
@@ -312,17 +311,17 @@ export const router = createBrowserRouter([
           ConnectionDetail.generateRouterObject('detail/:topic')
         ]
       },
-      {
-        ...CrowdloanUnlockCampaign.generateRouterObject('/crowdloan-unlock-campaign'),
-        children: [
-          CheckCrowdloanContributions.generateRouterObject('check-contributions'),
-          CrowdloanContributionsResult.generateRouterObject('contributions-result')
-        ]
-      },
+      // {
+      //   ...CrowdloanUnlockCampaign.generateRouterObject('/crowdloan-unlock-campaign'),
+      //   children: [
+      //     CheckCrowdloanContributions.generateRouterObject('check-contributions'),
+      //     CrowdloanContributionsResult.generateRouterObject('contributions-result')
+      //   ]
+      // },
       NotFoundContent.generateRouterObject('not-found'),
       NotFoundRedirect.generateRouterObject('*'),
-      UnsafeAccess.generateRouterObject('unsafe-access'),
-      PhishingDetected.generateRouterObject(`${PHISHING_PAGE_REDIRECT}/:website`)
+      UnsafeAccess.generateRouterObject('unsafe-access')
+      // PhishingDetected.generateRouterObject(`${PHISHING_PAGE_REDIRECT}/:website`)
     ]
   }
 ]);

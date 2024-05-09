@@ -2,23 +2,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import DefaultLogosMap from '@subwallet/extension-web-ui/assets/logo';
-import SwLogosMap from '@subwallet/extension-web-ui/assets/subwallet';
 import { BaseModal, PageWrapper } from '@subwallet/extension-web-ui/components';
-import { EXTENSION_VERSION, SUPPORT_MAIL, TERMS_OF_SERVICE_URL, TWITTER_URL, WEB_BUILD_NUMBER, WEBSITE_URL, WIKI_URL } from '@subwallet/extension-web-ui/constants/common';
+import { EXTENSION_VERSION, SUPPORT_MAIL, TWITTER_URL, WEB_BUILD_NUMBER } from '@subwallet/extension-web-ui/constants/common';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { WebUIContext } from '@subwallet/extension-web-ui/contexts/WebUIContext';
-import useNotification from '@subwallet/extension-web-ui/hooks/common/useNotification';
 import useTranslation from '@subwallet/extension-web-ui/hooks/common/useTranslation';
-import useUILock from '@subwallet/extension-web-ui/hooks/common/useUILock';
 import useIsPopup from '@subwallet/extension-web-ui/hooks/dom/useIsPopup';
 import useDefaultNavigate from '@subwallet/extension-web-ui/hooks/router/useDefaultNavigate';
 import { windowOpen } from '@subwallet/extension-web-ui/messaging';
 import { Theme, ThemeProps } from '@subwallet/extension-web-ui/types';
 import { openInNewTab } from '@subwallet/extension-web-ui/utils';
-import { BackgroundIcon, Button, ButtonProps, Icon, Image, ModalContext, SettingItem, SwHeader, SwIconProps } from '@subwallet/react-ui';
+import { BackgroundIcon, ButtonProps, Icon, Image, ModalContext, SettingItem, SwHeader, SwIconProps } from '@subwallet/react-ui';
 import CN from 'classnames';
-import { ArrowsOut, ArrowSquareOut, Book, BookBookmark, CaretRight, ChatTeardropText, Coin, EnvelopeSimple, FrameCorners, Globe, GlobeHemisphereEast, Lock, ShareNetwork, ShieldCheck, X } from 'phosphor-react';
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { ArrowsOut, ArrowSquareOut, BookBookmark, CaretRight, ChatTeardropText, Coin, EnvelopeSimple, FrameCorners, GlobeHemisphereEast, ShareNetwork, ShieldCheck, X } from 'phosphor-react';
+import React, { useCallback, useContext, useEffect, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import styled, { useTheme } from 'styled-components';
 
@@ -76,37 +73,12 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
   const navigate = useNavigate();
   const { token } = useTheme() as Theme;
   const isPopup = useIsPopup();
-  const notify = useNotification();
   const location = useLocation();
   const { goHome } = useDefaultNavigate();
   const { t } = useTranslation();
-  const [locking, setLocking] = useState(false);
   const { isWebUI } = useContext(ScreenContext);
   const { setTitle } = useContext(WebUIContext);
   const { activeModal, inactiveModal } = useContext(ModalContext);
-
-  const { isUILocked, lock, unlock } = useUILock();
-
-  const onLock = useCallback(() => {
-    if (isUILocked) {
-      unlock();
-      goHome();
-    } else {
-      setLocking(true);
-      lock()
-        .then(() => {
-          goHome();
-        })
-        .catch((e: Error) => {
-          notify({
-            message: e.message,
-            type: 'error'
-          });
-        }).finally(() => {
-          setLocking(false);
-        });
-    }
-  }, [goHome, isUILocked, lock, notify, unlock]);
 
   // todo: i18n all titles, labels below
   const SettingGroupItemType = useMemo((): SettingGroupItemType[] => ([
@@ -193,17 +165,17 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
           rightIcon: ArrowSquareOut,
           title: t('Contact support'),
           onClick: () => {
-            window.open(`${SUPPORT_MAIL}?subject=[WebApp - In-app support]`, '_self');
+            window.open(`${SUPPORT_MAIL}?subject=[Avail Space In-app Support]`, '_self');
           }
         },
-        {
-          key: 'user-manual',
-          leftIcon: Book,
-          leftIconBgColor: token['green-6'],
-          rightIcon: ArrowSquareOut,
-          title: t('User guide'),
-          onClick: openInNewTab(WIKI_URL)
-        },
+        // {
+        //   key: 'user-manual',
+        //   leftIcon: Book,
+        //   leftIconBgColor: token['green-6'],
+        //   rightIcon: ArrowSquareOut,
+        //   title: t('User guide'),
+        //   onClick: openInNewTab(WIKI_URL)
+        // },
         {
           key: 'request-a-feature',
           leftIcon: ChatTeardropText,
@@ -211,7 +183,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
           rightIcon: ArrowSquareOut,
           title: t('Request a feature'),
           onClick: () => {
-            window.open(`${SUPPORT_MAIL}?subject=[SubWallet In-app Feedback]`, '_self');
+            window.open(`${SUPPORT_MAIL}?subject=[Avail Space In-app Feedback]`, '_self');
           }
         },
         {
@@ -221,13 +193,13 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
               className='__subwallet-logo'
               height={24}
               shape='squircle'
-              src={SwLogosMap.subwallet}
+              src={'/images/avail/avail-icon.png'}
               width={24}
             />
           ),
           leftIconBgColor: 'transparent',
           rightIcon: CaretRight,
-          title: t('About SubWallet'),
+          title: t('About Avail Space'),
           onClick: () => {
             activeModal(modalId);
           }
@@ -239,22 +211,22 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
 
   const aboutSubwalletType = useMemo<SettingItemType[]>(() => {
     return [
-      {
-        key: 'website',
-        leftIcon: Globe,
-        rightIcon: ArrowSquareOut,
-        leftIconBgColor: token['purple-7'],
-        title: t('Website'),
-        onClick: openInNewTab(WEBSITE_URL)
-      },
-      {
-        key: 'terms-of-use',
-        leftIcon: BookBookmark,
-        rightIcon: ArrowSquareOut,
-        leftIconBgColor: token['volcano-7'],
-        title: t('Terms of use'),
-        onClick: openInNewTab(TERMS_OF_SERVICE_URL)
-      },
+      // {
+      //   key: 'website',
+      //   leftIcon: Globe,
+      //   rightIcon: ArrowSquareOut,
+      //   leftIconBgColor: token['purple-7'],
+      //   title: t('Website'),
+      //   onClick: openInNewTab(WEBSITE_URL)
+      // },
+      // {
+      //   key: 'terms-of-use',
+      //   leftIcon: BookBookmark,
+      //   rightIcon: ArrowSquareOut,
+      //   leftIconBgColor: token['volcano-7'],
+      //   title: t('Terms of use'),
+      //   onClick: openInNewTab(TERMS_OF_SERVICE_URL)
+      // },
       {
         key: 'x',
         leftIcon: (
@@ -343,24 +315,8 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
             })
           }
 
-          <Button
-            block
-            icon={
-              <Icon
-                phosphorIcon={Lock}
-                type='phosphor'
-                weight={'fill'}
-              />
-            }
-            loading={locking}
-            onClick={onLock}
-            schema={'secondary'}
-          >
-            {t('Lock')}
-          </Button>
-
           <div className={'__version'}>
-          SubWallet v {EXTENSION_VERSION} - {WEB_BUILD_NUMBER}
+            Avail Space v{EXTENSION_VERSION} - {WEB_BUILD_NUMBER}
           </div>
         </div>
 
@@ -369,7 +325,7 @@ function Component ({ className = '' }: Props): React.ReactElement<Props> {
           className={CN(className, 'about-subwallet-modal')}
           id={modalId}
           onCancel={closeModal}
-          title={t('About SubWallet')}
+          title={t('About Avail Space')}
         >
           {aboutSubwalletType.map((item) => (
             <div

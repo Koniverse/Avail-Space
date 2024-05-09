@@ -28,29 +28,34 @@ const StyledLayout = styled('div')<ThemeProps>(({ theme: { extendToken, token } 
       zIndex: 10
     },
 
-    '.web-layout-background': {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: -1,
-      transitionDuration: 'background-color 0.3s ease',
-      background: extendToken.tokensScreenInfoBackgroundColor,
-
-      '&.__background-common': {
-        background: token.colorBgDefault
-      },
-      '&.__background-info': {
-        background: extendToken.tokensScreenInfoBackgroundColor
-      },
-      '&.__background-increase': {
-        background: extendToken.tokensScreenSuccessBackgroundColor
-      },
-      '&.__background-decrease': {
-        background: extendToken.tokensScreenDangerBackgroundColor
-      }
-    },
+    // '.web-layout-background': {
+    //   position: 'fixed',
+    //   top: '-10vh',
+    //   left: '0',
+    //   right: '-20vw',
+    //   height: '30vh',
+    //   zIndex: -1,
+    //   transitionDuration: 'background-color 0.3s ease',
+    //   filter: 'blur(110.5px)',
+    //   background: extendToken.tokensScreenInfoBackgroundColor,
+    //
+    //   '&.__background-common': {
+    //     background: token.colorBgDefault,
+    //     opacity: 0.45
+    //   },
+    //   '&.__background-info': {
+    //     opacity: 0.45,
+    //     background: extendToken.tokensScreenInfoBackgroundColor
+    //   },
+    //   '&.__background-increase': {
+    //     background: extendToken.tokensScreenSuccessBackgroundColor,
+    //     opacity: 0.45
+    //   },
+    //   '&.__background-decrease': {
+    //     background: extendToken.tokensScreenDangerBackgroundColor,
+    //     opacity: 0.45
+    //   }
+    // },
 
     '.web-layout-container': {
       display: 'flex',
@@ -146,7 +151,7 @@ const StyledLayout = styled('div')<ThemeProps>(({ theme: { extendToken, token } 
 const BaseWeb = ({ children }: LayoutBaseWebProps) => {
   const { t } = useTranslation();
   const { isWebUI } = useContext(ScreenContext);
-  const { background, headerType, isPortfolio,
+  const { headerType, isPortfolio,
     isSettingPage, onBack, setSidebarCollapsed,
     showBackButtonOnHeader, showSidebar,
     sidebarCollapsed, title, webBaseClassName } = useContext(WebUIContext);
@@ -168,9 +173,6 @@ const BaseWeb = ({ children }: LayoutBaseWebProps) => {
 
   return (
     <StyledLayout className={CN('web-layout-container', `header-type-${headerType}`, webBaseClassName)}>
-      <div
-        className={CN('web-layout-background', `__background-${background}`)}
-      />
       {showSidebar && <div className='web-layout-sidebar'>
         <SideMenu
           isCollapsed={sidebarCollapsed}

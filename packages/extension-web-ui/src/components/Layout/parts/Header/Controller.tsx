@@ -10,7 +10,6 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 
 import SelectAccount from '../SelectAccount';
-import LockStatus from './parts/LockStatus';
 import Networks from './parts/Networks';
 
 export type Props = ThemeProps & {
@@ -57,8 +56,6 @@ function Component ({ className, onBack, showBackButton, title = '' }: Props): R
           <div className={'trigger-container -select-account'}>
             <SelectAccount />
           </div>
-
-          <LockStatus />
         </div>
       </div>
     </div>
@@ -102,8 +99,12 @@ const Controller = styled(Component)<Props>(({ theme: { token } }: Props) => ({
       padding: `0 ${token.padding}px`,
       height: 40,
       gap: 8,
-      background: token.colorBgSecondary,
-      borderRadius: 32
+      background: 'rgba(0, 0, 0, 0.25)',
+      borderRadius: 32,
+
+      '.ant-select-modal-input-container.ant-select-modal-input-bg-default': {
+        background: 'transparent'
+      }
     },
 
     '.trigger-container.-select-account': {

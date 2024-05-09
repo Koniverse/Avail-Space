@@ -3,18 +3,19 @@
 
 import { Layout } from '@subwallet/extension-web-ui/components';
 import { AutoConnect, CONFIRM_GENERAL_TERM, CONNECT_EXTENSION, CREATE_RETURN, DEFAULT_ACCOUNT_TYPES, DEFAULT_ROUTER_PATH, PREDEFINED_WALLETS, SELECTED_ACCOUNT_TYPE } from '@subwallet/extension-web-ui/constants';
-import { ATTACH_ACCOUNT_MODAL, CREATE_ACCOUNT_MODAL, GENERAL_TERM_AND_CONDITION_MODAL, IMPORT_ACCOUNT_MODAL, SELECT_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants/modal';
+import { ATTACH_ACCOUNT_MODAL, CREATE_ACCOUNT_MODAL, GENERAL_TERM_AND_CONDITION_MODAL, SELECT_ACCOUNT_MODAL } from '@subwallet/extension-web-ui/constants/modal';
 import { InjectContext } from '@subwallet/extension-web-ui/contexts/InjectContext';
+import { useGetDefaultAccountName } from '@subwallet/extension-web-ui/hooks';
 import useTranslation from '@subwallet/extension-web-ui/hooks/common/useTranslation';
 import { createAccountExternalV2 } from '@subwallet/extension-web-ui/messaging';
 import { RootState } from '@subwallet/extension-web-ui/stores';
-import { PhosphorIcon, ThemeProps } from '@subwallet/extension-web-ui/types';
+import { ThemeProps } from '@subwallet/extension-web-ui/types';
 import { checkHasInjected } from '@subwallet/extension-web-ui/utils/wallet';
-import { Button, ButtonProps, Form, Icon, Image, Input, ModalContext } from '@subwallet/react-ui';
+import { Button, Form, Icon, Image, Input, ModalContext } from '@subwallet/react-ui';
 import CN from 'classnames';
-import { FileArrowDown, PlusCircle, PuzzlePiece, Swatches, Wallet } from 'phosphor-react';
+import { Swatches, Wallet } from 'phosphor-react';
 import { Callbacks, FieldData, RuleObject } from 'rc-field-form/lib/interface';
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -23,7 +24,6 @@ import { useLocalStorage } from 'usehooks-ts';
 import { GeneralTermModal } from '../components/Modal/TermsAndConditions/GeneralTermModal';
 import SocialGroup from '../components/SocialGroup';
 import { ScreenContext } from '../contexts/ScreenContext';
-import useGetDefaultAccountName from '../hooks/account/useGetDefaultAccountName';
 import usePreloadView from '../hooks/router/usePreloadView';
 import { convertFieldToObject, isMobile, readOnlyScan, simpleCheckForm } from '../utils';
 
@@ -33,14 +33,7 @@ interface ReadOnlyAccountInput {
   address?: string;
 }
 
-interface WelcomeButtonItem {
-  id: string;
-  icon: PhosphorIcon;
-  schema: ButtonProps['schema'];
-  title: string;
-  description: string;
-  loading: boolean;
-}
+let tryToConnect = false;
 
 function Component ({ className }: Props): React.ReactElement<Props> {
   const { t } = useTranslation();
@@ -51,8 +44,8 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   const { enableInject, loadingInject, selectWallet } = useContext(InjectContext);
 
   const { accounts, isNoAccount } = useSelector((root: RootState) => root.accountState);
-
   const autoGenAttachReadonlyAccountName = useGetDefaultAccountName();
+
   const [, setSelectedAccountTypes] = useLocalStorage(SELECTED_ACCOUNT_TYPE, DEFAULT_ACCOUNT_TYPES);
   const [_returnPath, setReturnStorage] = useLocalStorage(CREATE_RETURN, DEFAULT_ROUTER_PATH);
   const [modalIdAfterConfirm, setModalIdAfterConfirm] = useState('');
@@ -126,41 +119,6 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     },
     [accounts, t]
   );
-
-  const buttonList = useMemo((): WelcomeButtonItem[] => [
-    {
-      description: t('Connect to your existing wallet'),
-      icon: PuzzlePiece,
-      id: CONNECT_EXTENSION,
-      schema: 'primary',
-      title: t('Connect wallet'),
-      loading: loadingInject
-    },
-    {
-      description: t('Create a new account with SubWallet'),
-      icon: PlusCircle,
-      id: CREATE_ACCOUNT_MODAL,
-      schema: 'secondary',
-      title: t('Create a new account'),
-      loading: false
-    },
-    {
-      description: t('Import an existing account'),
-      icon: FileArrowDown,
-      id: IMPORT_ACCOUNT_MODAL,
-      schema: 'secondary',
-      title: t('Import an account'),
-      loading: false
-    },
-    {
-      description: t('Attach an account without private key'),
-      icon: Swatches,
-      id: ATTACH_ACCOUNT_MODAL,
-      schema: 'secondary',
-      title: t('Attach an account'),
-      loading: false
-    }
-  ], [t, loadingInject]);
 
   const openModal = useCallback((id: string) => {
     return () => {
@@ -243,10 +201,11 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   }, [isNoAccount, navigate, returnPath, setReturnStorage]);
 
   useEffect(() => {
-    if (isMobile && !AutoConnect.ignore) {
+    if (isMobile && !tryToConnect && !AutoConnect.ignore) {
       const installedWallet = Object.values(PREDEFINED_WALLETS).find((w) => (w.supportMobile && checkHasInjected(w.key)));
 
       if (installedWallet) {
+        tryToConnect = true;
         enableInject(installedWallet.key);
       }
     }
@@ -256,7 +215,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     <Layout.Base
       className={CN(className, '__welcome-layout-containter')}
     >
-      {!isWebUI && <div className='bg-image' />}
+      <div className='welcome-bg-image' />
       <div className={'body-container'}>
         <div className={CN('brand-container', 'flex-column')}>
           <div className='logo-container'>
@@ -264,58 +223,58 @@ function Component ({ className }: Props): React.ReactElement<Props> {
               isWebUI
                 ? (
                   <Image
-                    src='/images/subwallet/gradient-logo.png'
-                    width={80}
+                    src='/images/avail/avail-icon.png'
+                    width={120}
                   />
                 )
                 : (
                   <Image
-                    src={'./images/subwallet/welcome-logo.png'}
-                    width={139}
+                    src={'/images/avail/avail-icon.png'}
+                    width={90}
                   />
                 )
             }
           </div>
-          {
-            isWebUI && (<div className='title'>{t('Welcome to SubWallet!')}</div>)
-          }
+          <div className='title'>{t('WELCOME TO AVAIL SPACE')}</div>
           <div className='sub-title'>
-            {t('Choose how you\'d like to set up your wallet')}
+            {t('Start exploring blockchain applications in seconds')}
           </div>
         </div>
 
         <div className='buttons-container'>
           <div className='buttons'>
-            {buttonList.map((item) => (
-              <Button
-                block={true}
-                className={CN('welcome-import-button', `type-${item.id}`)}
-                contentAlign='left'
-                icon={
-                  <Icon
-                    className='welcome-import-icon'
-                    phosphorIcon={item.icon}
-                    size='md'
-                    weight='fill'
-                  />
-                }
-                key={item.id}
-                loading={item.loading}
-                onClick={onClickToSelectTypeConnect(item.id)}
-                schema={item.schema}
-              >
-                <div className='welcome-import-button-content'>
-                  <div className='welcome-import-button-title'>
-                    {t(item.title)}
-                  </div>
-                  <div className='welcome-import-button-description'>
-                    {t(item.description)}
-                  </div>
-                </div>
-              </Button>
-            ))}
+            <Button
+              contentAlign='left'
+              icon={
+                <Icon
+                  phosphorIcon={Swatches}
+                  size='md'
+                  weight='fill'
+                />
+              }
+              onClick={onClickToSelectTypeConnect(ATTACH_ACCOUNT_MODAL)}
+              schema='secondary'
+              shape='round'
+            >
+              {t('Attach an account')}
+            </Button>
+            <Button
+              contentAlign='left'
+              icon={
+                <Icon
+                  phosphorIcon={Wallet}
+                  size='md'
+                  weight='fill'
+                />
+              }
+              loading={loadingInject}
+              onClick={onClickToSelectTypeConnect(CONNECT_EXTENSION)}
+              schema='primary'
+              shape='round'
+            >
+              {t('Connect wallet')}
+            </Button>
           </div>
-
           <div className='divider' />
         </div>
 
@@ -366,12 +325,12 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       {isWebUI && (
         <SocialGroup className={'social-group'} />
       )}
-      <GeneralTermModal onOk={modalIdAfterConfirm === '' ? afterConfirmTermToAttachReadonlyAccount : openModal(modalIdAfterConfirm)} />
+      <GeneralTermModal onOk={openModal(modalIdAfterConfirm)} />
     </Layout.Base>
   );
 }
 
-const Welcome = styled(Component)<Props>(({ theme: { token } }: Props) => {
+const Welcome = styled(Component)<Props>(({ theme: { extendToken, token } }: Props) => {
   return {
     position: 'relative',
 
@@ -381,18 +340,16 @@ const Welcome = styled(Component)<Props>(({ theme: { token } }: Props) => {
       justifyContent: 'center'
     },
 
-    '.bg-image': {
-      backgroundImage: 'url("/images/subwallet/welcome-background.png")',
-      backgroundRepeat: 'no-repeat',
-      backgroundPosition: 'top',
-      backgroundSize: 'contain',
-      height: '100%',
-      position: 'absolute',
-      width: '100%',
-      left: 0,
-      top: 0,
-      opacity: 0.1,
-      zIndex: -1
+    '.welcome-bg-image': {
+      position: 'fixed',
+      top: '-10vh',
+      left: '0',
+      right: '-20vw',
+      height: '30vh',
+      zIndex: 0,
+      transitionDuration: 'background-color 0.3s ease',
+      filter: 'blur(110.5px)',
+      background: extendToken.tokensScreenInfoBackgroundColor
     },
 
     '.brand-container': {
@@ -403,19 +360,19 @@ const Welcome = styled(Component)<Props>(({ theme: { token } }: Props) => {
       height: 2,
       backgroundColor: token.colorBgDivider,
       opacity: 0.8,
-      width: '100%'
+      width: '100%',
+      display: 'none'
     },
 
     '.body-container': {
       padding: `0 ${token.padding}px`,
       textAlign: 'center',
-      opacity: 0.999, // Hot fix show wrong opacity in browser
 
       '.title': {
-        marginTop: token.margin,
+        marginTop: token.marginXL,
         fontWeight: token.fontWeightStrong,
-        fontSize: token.fontSizeHeading3,
-        lineHeight: token.lineHeightHeading3,
+        fontSize: token.fontSizeHeading1,
+        lineHeight: token.lineHeightHeading1,
         color: token.colorTextBase
       },
 
@@ -443,40 +400,13 @@ const Welcome = styled(Component)<Props>(({ theme: { token } }: Props) => {
 
     '.buttons-container': {
       '.buttons': {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: token.sizeXS
-      }
-    },
-
-    '.welcome-import-button': {
-      height: 'auto',
-
-      '.welcome-import-icon': {
-        height: token.sizeLG,
-        width: token.sizeLG,
-        marginLeft: token.sizeMD - token.size
+        fontSize: 16
       },
-
-      '.welcome-import-button-content': {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: token.sizeXXS,
-        fontWeight: token.fontWeightStrong,
-        padding: `${token.paddingSM - 1}px ${token.paddingLG}px`,
-        textAlign: 'start',
-
-        '.welcome-import-button-title': {
-          fontSize: token.fontSizeHeading5,
-          lineHeight: token.lineHeightHeading5,
-          color: token.colorTextBase
-        },
-
-        '.welcome-import-button-description': {
-          fontSize: token.fontSizeHeading6,
-          lineHeight: token.lineHeightHeading6,
-          color: token.colorTextLabel
-        }
+      '.ant-btn': {
+        paddingLeft: token.paddingXL,
+        paddingRight: token.paddingXL,
+        marginLeft: token.marginSM,
+        marginRight: token.marginSM
       }
     },
 
@@ -515,6 +445,10 @@ const Welcome = styled(Component)<Props>(({ theme: { token } }: Props) => {
         marginTop: 24
       },
 
+      '.divider': {
+        display: 'block'
+      },
+
       '.title': {
         marginBottom: token.marginXS
       },
@@ -525,48 +459,15 @@ const Welcome = styled(Component)<Props>(({ theme: { token } }: Props) => {
 
       '.buttons-container': {
         marginBottom: token.marginXL,
-        marginTop: 72,
+        marginTop: 36,
         width: '100%',
 
         '.divider': {
-          marginTop: token.marginLG
+          marginTop: 44
         },
 
         '.buttons': {
-          display: 'grid',
-          gridTemplateRows: '1fr 1fr',
-          gridTemplateColumns: '1fr 1fr',
-          gap: token.sizeMS,
 
-          '.ant-btn:not(.-icon-only) .ant-btn-loading-icon>.anticon': {
-            fontSize: 24,
-            height: 24,
-            width: 24,
-            marginLeft: 4,
-            marginRight: 0
-          },
-
-          [`.type-${CREATE_ACCOUNT_MODAL}`]: {
-            color: token['green-6']
-          },
-
-          [`.type-${IMPORT_ACCOUNT_MODAL}`]: {
-            color: token['orange-7']
-          },
-
-          [`.type-${ATTACH_ACCOUNT_MODAL}`]: {
-            color: token['magenta-6']
-          },
-
-          [`.type-${CONNECT_EXTENSION}`]: {
-            color: token.colorSuccess,
-            order: -1
-          },
-
-          '.welcome-import-button': {
-            width: '100%',
-            paddingRight: 14
-          }
         }
       },
 
@@ -583,6 +484,23 @@ const Welcome = styled(Component)<Props>(({ theme: { token } }: Props) => {
         '.social-group': {
           paddingBottom: 32
         }
+      }
+    },
+    '@media (max-width: 560px)': {
+      '.buttons .ant-btn': {
+        display: 'block',
+        width: 300,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        marginBottom: token.margin
+      },
+
+      '.body-container .title': {
+        fontSize: 24
+      },
+
+      '.body-container .sub-title': {
+        fontSize: 14
       }
     }
   };

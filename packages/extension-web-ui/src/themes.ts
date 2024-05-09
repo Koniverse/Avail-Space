@@ -10,6 +10,7 @@ import { theme as SwReactUI } from '@subwallet/react-ui';
 import { ThemeConfig as _ThemeConfig, Web3LogoMap } from '@subwallet/react-ui/es/config-provider/context';
 import { AliasToken as _AliasToken, GlobalToken as _GlobalToken } from '@subwallet/react-ui/es/theme/interface';
 import logoMap from '@subwallet/react-ui/es/theme/themes/logoMap';
+import seedToken from '@subwallet/react-ui/es/theme/themes/seed';
 
 export type ThemeConfig = _ThemeConfig;
 export type AliasToken = _AliasToken;
@@ -27,38 +28,15 @@ export interface ExtraToken {
   tokensScreenInfoBackgroundColor: string,
 }
 
-export type Theme = {
+export interface AppThemeConfig extends ThemeConfig {
   id: ThemeNames;
   name: string;
-  token: GlobalToken;
-
-  // todo: add extend token later
   extendToken: ExtraToken,
   logoMap: Web3LogoMap,
-};
-
-export interface SwThemeConfig extends ThemeConfig {
-  id: ThemeNames,
-  name: string;
-
-  generateExtraTokens: (token: AliasToken) => ExtraToken;
-
-  customTokens: (token: AliasToken) => AliasToken;
-  logoMap: Web3LogoMap
 }
 
-function genDefaultExtraTokens (token: AliasToken): ExtraToken {
-  return {
-    oneColumnWidth: 400,
-    bigOneColumnWidth: 600,
-    twoColumnWidth: 820,
-    bodyBackgroundColor: token.colorBgDefault,
-    logo: subWalletLogo,
-    defaultImagePlaceholder,
-    tokensScreenSuccessBackgroundColor: 'linear-gradient(180deg, rgba(76, 234, 172, 0.10) 5%, rgba(217, 217, 217, 0.00) 33%)',
-    tokensScreenDangerBackgroundColor: 'linear-gradient(180deg, rgba(234, 76, 76, 0.10) 5%, rgba(217, 217, 217, 0.00) 33%)',
-    tokensScreenInfoBackgroundColor: 'linear-gradient(rgba(0, 75, 255, 0.1) 5%, rgba(217, 217, 217, 0) 33%)'
-  };
+export type Theme = AppThemeConfig & {
+  token: GlobalToken;
 }
 
 // todo: will standardized logoMap later
@@ -75,45 +53,37 @@ const defaultLogoMap: Web3LogoMap = {
   default: SwLogosMap.default
 };
 
-// Todo: i18n for theme name
-// Implement theme from @subwallet/react-ui
-export const SW_THEME_CONFIGS: Record<ThemeNames, SwThemeConfig> = {
-  [ThemeNames.DARK]: {
-    id: ThemeNames.DARK,
-    name: 'Dark',
-    algorithm: SwReactUI.darkAlgorithm,
-    customTokens: (token) => (token),
-    generateExtraTokens: (token) => {
-      return { ...genDefaultExtraTokens(token) };
-    },
-    logoMap: defaultLogoMap
-  },
-  [ThemeNames.LIGHT]: {
-    id: ThemeNames.LIGHT,
-    name: 'Light',
-    algorithm: SwReactUI.darkAlgorithm,
-    customTokens: (token) => (token),
-    generateExtraTokens: (token) => {
-      return { ...genDefaultExtraTokens(token) };
-    },
-    logoMap: defaultLogoMap
-  },
-  [ThemeNames.SUBSPACE]: {} as SwThemeConfig
+const currentToken: Partial<GlobalToken> = {
+  ...seedToken,
+  colorPrimary: '#3073F1',
+  colorSecondary: '#44D5DE',
+  colorSuccess: '#4CEAAC',
+  colorWarning: '#f2d457',
+  colorError: '#E42A12',
+  colorInfo: '#3073F1',
+  colorBgBase: '#131518',
+  colorBgDefault: '#131518',
+  colorBgSecondary: '#1A1F25',
+  colorBgDivider: 'rgba(255, 255, 255, 0.1)',
+  colorBgInput: '#1D2B3E',
+  bodyFontWeight: '400'
 };
 
-// Todo: Replace tokens with Subspace color schema
-SW_THEME_CONFIGS[ThemeNames.SUBSPACE] = { ...SW_THEME_CONFIGS[ThemeNames.LIGHT] };
-
-export function generateTheme ({ customTokens,
-  generateExtraTokens,
-  id,
-  logoMap,
-  name }: SwThemeConfig, token: GlobalToken): Theme {
-  return {
-    id,
-    name,
-    token: customTokens(token),
-    extendToken: generateExtraTokens(token),
-    logoMap
-  } as Theme;
-}
+export const appTheme: AppThemeConfig = {
+  id: ThemeNames.DARK,
+  name: 'Dark',
+  algorithm: SwReactUI.darkAlgorithm,
+  token: currentToken,
+  extendToken: {
+    oneColumnWidth: 400,
+    bigOneColumnWidth: 600,
+    twoColumnWidth: 820,
+    bodyBackgroundColor: currentToken.colorBgBase || '#000',
+    logo: subWalletLogo,
+    defaultImagePlaceholder,
+    tokensScreenSuccessBackgroundColor: 'linear-gradient(180deg, rgba(76, 234, 172, 0.10) 5%, rgba(217, 217, 217, 0.00) 33%)',
+    tokensScreenDangerBackgroundColor: 'linear-gradient(180deg, rgba(234, 76, 76, 0.10) 5%, rgba(217, 217, 217, 0.00) 33%)',
+    tokensScreenInfoBackgroundColor: 'linear-gradient(45deg, #78F7FF 9.56%, #31A0FF 44.2%, #DAC7FF 95.08%)'
+  },
+  logoMap: defaultLogoMap
+};

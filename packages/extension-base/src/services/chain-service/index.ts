@@ -22,6 +22,31 @@ import Web3 from 'web3';
 import { logger as createLogger } from '@polkadot/util/logger';
 import { Logger } from '@polkadot/util/types';
 
+const availChainInfoMap = (() => {
+  const enableList = [
+    'availTuringTest',
+    'goldberg_testnet',
+    'ethereum',
+    'binance',
+    'polygon',
+    'arbitrum_one',
+    'optimism',
+    'avalanche_c',
+    'base_mainnet',
+    'fantom',
+    'tomochain',
+    'manta_network_evm',
+    'ethereum_goerli',
+    'binance_test',
+    'fantom_testnet',
+    'okxTest'
+  ];
+
+  return Object.fromEntries(enableList.map((slug) => {
+    return [slug, ChainInfoMap[slug]];
+  }));
+})();
+
 export class ChainService {
   private dataMap: _DataMap = {
     chainInfoMap: {},
@@ -511,6 +536,8 @@ export class ChainService {
   }
 
   public upsertCustomToken (token: _ChainAsset) {
+    const chainInfo = this.getChainInfoByKey(token.originChain);
+
     if (token.slug.length === 0) { // new token
       if (token.assetType === _AssetType.NATIVE) {
         const defaultSlug = this.generateSlugForNativeToken(token.originChain, token.assetType, token.symbol);
@@ -524,7 +551,7 @@ export class ChainService {
     }
 
     if (token.originChain && _isAssetFungibleToken(token)) {
-      token.hasValue = !(this.getChainInfoByKey(token.originChain)?.isTestnet);
+      token.hasValue = !chainInfo?.isTestnet;
     }
 
     const assetRegistry = this.getAssetRegistry();
@@ -791,6 +818,15 @@ export class ChainService {
   private async initApiForChain (chainInfo: _ChainInfo) {
     const { endpoint, providerName } = this.getChainCurrentProviderByKey(chainInfo.slug);
 
+    /**
+     * Disable chain if not found provider
+     * */
+    if (!endpoint && !providerName) {
+      this.disableChain(chainInfo.slug);
+
+      return;
+    }
+
     const onUpdateStatus = (status: _ChainConnectionStatus) => {
       const slug = chainInfo.slug;
 
@@ -810,7 +846,11 @@ export class ChainService {
       }
     }
 
-    if (chainInfo.evmInfo !== null && chainInfo.evmInfo !== undefined) {
+    /**
+     * To check if the chain is EVM chain, we need to check if the chain has evmInfo and evmChainId is not -1
+     * (fake evm chain to connect to substrate chain)
+     * */
+    if (chainInfo.evmInfo !== null && chainInfo.evmInfo !== undefined && chainInfo.evmInfo.evmChainId !== -1) {
       const chainApi = await this.evmChainHandler.initApi(chainInfo.slug, endpoint, { providerName, onUpdateStatus });
 
       this.evmChainHandler.setEvmApi(chainInfo.slug, chainApi);
@@ -1005,7 +1045,7 @@ export class ChainService {
 
   private async initChains () {
     const storedChainSettings = await this.dbService.getAllChainStore();
-    const defaultChainInfoMap = ChainInfoMap;
+    const defaultChainInfoMap = availChainInfoMap;
     const storedChainSettingMap: Record<string, IChain> = {};
 
     storedChainSettings.forEach((chainStoredSetting) => {

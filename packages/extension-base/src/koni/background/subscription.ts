@@ -5,9 +5,8 @@ import { _ChainAsset, _ChainInfo } from '@subwallet/chain-list/types';
 import { subscribeCrowdloan } from '@subwallet/extension-base/koni/api/dotsama/crowdloan';
 import { nftHandler } from '@subwallet/extension-base/koni/background/handlers';
 import { _EvmApi, _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
-import { COMMON_RELOAD_EVENTS, EventItem, EventType } from '@subwallet/extension-base/services/event-service/types';
+import { EventItem, EventType } from '@subwallet/extension-base/services/event-service/types';
 import DatabaseService from '@subwallet/extension-base/services/storage-service/DatabaseService';
-import { waitTimeout } from '@subwallet/extension-base/utils';
 
 import { logger as createLogger } from '@polkadot/util';
 import { Logger } from '@polkadot/util/types';
@@ -56,38 +55,36 @@ export class KoniSubscription {
       delete this.subscriptionMap.balance;
     }
 
-    if (this.subscriptionMap.crowdloan) {
-      this.subscriptionMap.crowdloan();
-      delete this.subscriptionMap.crowdloan;
-    }
+    // if (this.subscriptionMap.crowdloan) {
+    //   this.subscriptionMap.crowdloan();
+    //   delete this.subscriptionMap.crowdloan;
+    // }
   }
 
   async start () {
     await Promise.all([this.state.eventService.waitCryptoReady, this.state.eventService.waitKeyringReady, this.state.eventService.waitAssetReady]);
-    const currentAddress = this.state.keyringService.currentAccount?.address;
+    // const currentAddress = this.state.keyringService.currentAccount?.address;
 
-    if (currentAddress) {
-      this.subscribeCrowdloans(currentAddress, this.state.getSubstrateApiMap());
-    }
-
-    this.eventHandler = (events, eventTypes) => {
-      const serviceInfo = this.state.getServiceInfo();
-      const needReload = eventTypes.some((eventType) => COMMON_RELOAD_EVENTS.includes(eventType));
-
-      if (!needReload) {
-        return;
-      }
-
-      const address = serviceInfo.currentAccountInfo?.address;
-
-      if (!address) {
-        return;
-      }
-
-      this.subscribeCrowdloans(address, serviceInfo.chainApiMap.substrate);
-    };
-
-    this.state.eventService.onLazy(this.eventHandler.bind(this));
+    // if (currentAddress) {
+    //   // this.subscribeCrowdloans(currentAddress, this.state.getSubstrateApiMap());
+    // }
+    //
+    // this.eventHandler = (events, eventTypes) => {
+    //   const serviceInfo = this.state.getServiceInfo();
+    //   const needReload = eventTypes.some((eventType) => COMMON_RELOAD_EVENTS.includes(eventType));
+    //
+    //   if (!needReload) {
+    //     return;
+    //   }
+    //
+    //   const address = serviceInfo.currentAccountInfo?.address;
+    //
+    //   if (!address) {
+    //     return;
+    //   }
+    // };
+    //
+    // this.state.eventService.onLazy(this.eventHandler.bind(this));
   }
 
   async stop () {
@@ -153,10 +150,10 @@ export class KoniSubscription {
   }
 
   async reloadCrowdloan () {
-    const currentAddress = this.state.keyringService.currentAccount?.address;
-
-    this.subscribeCrowdloans(currentAddress, this.state.getSubstrateApiMap());
-
-    await waitTimeout(1800);
+    // const currentAddress = this.state.keyringService.currentAccount?.address;
+    //
+    // this.subscribeCrowdloans(currentAddress, this.state.getSubstrateApiMap());
+    //
+    // await waitTimeout(1800);
   }
 }

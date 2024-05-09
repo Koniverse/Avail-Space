@@ -533,7 +533,6 @@ const Tokens = styled(WrapperComponent)<WrapperProps>(({ theme: { extendToken, t
     },
 
     '.__upper-block-wrapper': {
-      backgroundColor: token.colorBgDefault,
       position: 'absolute',
       paddingTop: '32px',
       height: 210,
@@ -543,15 +542,22 @@ const Tokens = styled(WrapperComponent)<WrapperProps>(({ theme: { extendToken, t
       width: '100%',
       display: 'flex',
       alignItems: 'center',
-      backgroundImage: extendToken.tokensScreenSuccessBackgroundColor,
       transition: 'opacity, padding-top 0.27s ease',
 
       '&.-is-shrink': {
         height: 104
       },
 
-      '&.-decrease': {
-        backgroundImage: extendToken.tokensScreenDangerBackgroundColor
+      '&:before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: '50%',
+        backgroundImage: extendToken.tokensScreenSuccessBackgroundColor,
+        filter: 'blur(110.5px)',
+        opacity: 0.45
       }
     },
 

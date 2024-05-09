@@ -2,24 +2,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { MenuItem, MenuItemType } from '@subwallet/extension-web-ui/components/Layout/parts/SideMenu/MenuItem';
-import { CONTACT_US, DEFAULT_SWAP_PARAMS, FAQS_URL, SWAP_TRANSACTION, TERMS_OF_SERVICE_URL } from '@subwallet/extension-web-ui/constants';
-import { useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
+import { FAQS_URL, SUPPORT_MAIL, TERMS_OF_SERVICE_URL } from '@subwallet/extension-web-ui/constants';
+import { useTranslation } from '@subwallet/extension-web-ui/hooks';
 import usePreloadView from '@subwallet/extension-web-ui/hooks/router/usePreloadView';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
-import { isAccountAll, openInNewTab } from '@subwallet/extension-web-ui/utils';
+import { openInNewTab } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, Image } from '@subwallet/react-ui';
 import CN from 'classnames';
-import { ArrowCircleLeft, ArrowCircleRight, ArrowsLeftRight, ArrowSquareUpRight, Clock, Gear, Globe, Info, MessengerLogo, Parachute, Rocket, Vault, Wallet } from 'phosphor-react';
+import { ArrowCircleLeft, ArrowCircleRight, ArrowsLeftRight, Clock, Gear, MessengerLogo, NewspaperClipping, Vault, Wallet } from 'phosphor-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useLocalStorage } from 'usehooks-ts';
+
+import useNotification from '../../../../hooks/common/useNotification';
 
 export type Props = ThemeProps & {
   isCollapsed: boolean,
   setCollapsed: React.Dispatch<React.SetStateAction<boolean>>
 };
-
-const swapPath = '/transaction/swap';
 
 function Component ({ className,
   isCollapsed,
@@ -28,20 +27,24 @@ function Component ({ className,
   const navigate = useNavigate();
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const { t } = useTranslation();
-  const currentAccount = useSelector((root) => root.accountState.currentAccount);
-  const [, setSwapStorage] = useLocalStorage(SWAP_TRANSACTION, DEFAULT_SWAP_PARAMS);
-  const transactionFromValue = useMemo(() => {
-    return currentAccount?.address ? isAccountAll(currentAccount.address) ? '' : currentAccount.address : '';
-  }, [currentAccount?.address]);
+  const notify = useNotification();
 
   usePreloadView([
     'Home',
     'Tokens',
     'NftCollections',
-    'Crowdloans',
-    'Staking',
+    // 'Crowdloans',
+    // 'Staking',
     'Settings'
   ]);
+
+  const showComingSoon = useCallback(() => {
+    notify({
+      message: t('Coming soon'),
+      type: 'info',
+      closable: false
+    });
+  }, [notify, t]);
 
   const menuItems = useMemo<MenuItemType[]>(() => {
     return [
@@ -55,25 +58,30 @@ function Component ({ className,
         value: '/home/earning',
         icon: Vault
       },
+      // {
+      //   label: t('dApps'),
+      //   value: '/home/dapps',
+      //   icon: Globe
+      // },
+      // {
+      //   label: t('Mission Pools'),
+      //   value: '/home/mission-pools',
+      //   icon: Parachute
+      // },
+      // {
+      //   label: t('Crowdloans'),
+      //   value: '/home/crowdloans',
+      //   icon: Rocket
+      // },
       {
         label: t('Swap'),
-        value: '/transaction/swap',
+        value: '/swap',
         icon: ArrowsLeftRight
       },
       {
-        label: t('dApps'),
-        value: '/home/dapps',
-        icon: Globe
-      },
-      {
-        label: t('Mission Pools'),
-        value: '/home/mission-pools',
-        icon: Parachute
-      },
-      {
-        label: t('Crowdloans'),
-        value: '/home/crowdloans',
-        icon: Rocket
+        label: t('Bridge'),
+        value: '/bridge',
+        icon: NewspaperClipping
       },
       {
         label: t('History'),
@@ -90,21 +98,21 @@ function Component ({ className,
 
   const staticMenuItems = useMemo<MenuItemType[]>(() => {
     return [
-      {
-        label: t('FAQs'),
-        value: 'faqs',
-        icon: Info
-      },
+      // {
+      //   label: t('FAQs'),
+      //   value: 'faqs',
+      //   icon: Info
+      // },
       {
         label: t('Contact'),
         value: 'contact',
         icon: MessengerLogo
-      },
-      {
-        label: t('Terms of services'),
-        value: 'tos',
-        icon: ArrowSquareUpRight
       }
+      // {
+      //   label: t('Terms of services'),
+      //   value: 'tos',
+      //   icon: ArrowSquareUpRight
+      // }
     ];
   }, [t]);
 
@@ -117,7 +125,7 @@ function Component ({ className,
         openInNewTab(TERMS_OF_SERVICE_URL)();
         break;
       case 'contact':
-        openInNewTab(CONTACT_US)();
+        window.open(`${SUPPORT_MAIL}?subject=[Avail Space] Contact`, '_self');
         break;
       default:
     }
@@ -126,15 +134,14 @@ function Component ({ className,
   const handleNavigate = useCallback((
     value: string
   ) => {
-    if (value === swapPath) {
-      setSwapStorage({
-        ...DEFAULT_SWAP_PARAMS,
-        from: transactionFromValue
-      });
+    if (value === '/swap' || value === '/bridge') {
+      showComingSoon();
+
+      return;
     }
 
     navigate(`${value}`);
-  }, [navigate, setSwapStorage, transactionFromValue]);
+  }, [navigate, showComingSoon]);
 
   const goHome = useCallback(() => {
     navigate('/home');
@@ -154,10 +161,6 @@ function Component ({ className,
 
       if (transaction === 'earn') {
         return ['/home/earning/'];
-      }
-
-      if (transaction === 'swap') {
-        return [swapPath];
       }
 
       return ['/home/staking'];
@@ -199,13 +202,27 @@ function Component ({ className,
       })}
     >
       <div className='__logo-container'>
-        <Image
-          alt={'SubWallet'}
-          onClick={goHome}
-          shape={'square'}
-          src='/images/subwallet/gradient-logo.png'
-          style={{ cursor: 'pointer' }}
-        />
+        <div className='__branding'>
+          <Image
+            alt={'SubWallet'}
+            className={'__extend-logo'}
+            onClick={goHome}
+            shape={'square'}
+            src={'/images/avail/avail-space-brand.png'}
+            style={{ cursor: 'pointer' }}
+          />
+
+          <Image
+            alt={'SubWallet'}
+            className={'__collapse-logo'}
+            onClick={goHome}
+            shape={'square'}
+            src={'/images/avail/avail-icon.png'}
+            style={{ cursor: 'pointer' }}
+          />
+        </div>
+
+        <div className={'__divider'} />
 
         <Button
           className={'__sidebar-collapse-trigger'}
@@ -233,6 +250,7 @@ function Component ({ className,
                 className={'side-menu-item'}
                 icon={m.icon}
                 isActivated={selectedKeys.includes(m.value)}
+                isComingSoon={m.value === '/swap' || m.value === '/bridge'}
                 key={m.value}
                 label={m.label}
                 onClick={handleNavigate}
