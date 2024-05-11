@@ -7,6 +7,7 @@ import { _EvmApi } from '@subwallet/extension-base/services/chain-service/types'
 
 import { ApiPromise } from '@polkadot/api';
 import { BN } from '@polkadot/util';
+import { Dedot } from "dedot";
 
 export interface TokenBalanceRaw {
   reserved: BN,
@@ -64,6 +65,7 @@ export interface SubscribeBasePalletBalance {
 
 export interface SubscribeSubstratePalletBalance extends SubscribeBasePalletBalance {
   substrateApi: ApiPromise;
+  dedot: Dedot;
   includeNativeToken?: boolean;
 }
 

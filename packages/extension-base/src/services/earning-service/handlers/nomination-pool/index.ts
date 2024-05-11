@@ -14,13 +14,13 @@ import { balanceFormatter, formatNumber, reformatAddress } from '@subwallet/exte
 import BigN from 'bignumber.js';
 import { t } from 'i18next';
 
-import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { UnsubscribePromise } from '@polkadot/api-base/types/base';
 import { DeriveSessionProgress } from '@polkadot/api-derive/types';
 import { Codec } from '@polkadot/types/types';
 import { BN, BN_ZERO, hexToString, isHex, noop } from '@polkadot/util';
 
 import BasePoolHandler from '../base';
+import { DedotExtrinsic } from "@subwallet/extension-base/services/transaction-service/types";
 
 export default class NominationPoolHandler extends BasePoolHandler {
   public readonly type = YieldPoolType.NOMINATION_POOL;
@@ -547,7 +547,7 @@ export default class NominationPoolHandler extends BasePoolHandler {
     const bnActiveStake = new BN(positionInfo?.activeStake || '0');
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    const compoundResult = async (extrinsic: SubmittableExtrinsic<'promise'>): Promise<[TransactionData, YieldTokenBaseInfo]> => {
+    const compoundResult = async (extrinsic: DedotExtrinsic): Promise<[TransactionData, YieldTokenBaseInfo]> => {
       const tokenSlug = this.nativeToken.slug;
       // const feeInfo = await extrinsic.paymentInfo(address);
       // const fee = feeInfo.toPrimitive() as unknown as RuntimeDispatchInfo;
@@ -556,13 +556,13 @@ export default class NominationPoolHandler extends BasePoolHandler {
       return [extrinsic, { slug: tokenSlug, amount: '0' }];
     };
 
-    if (bnActiveStake.gt(BN_ZERO)) { // already joined a pool
-      const extrinsic = chainApi.api.tx.nominationPools.bondExtra({ FreeBalance: amount });
+    if (bnActiveStake.gt(BN_ZERO)) { // already joined a pool - FreeBalance: amount
+      const extrinsic = chainApi.dedot.tx.nominationPools.bondExtra({ tag: 'FreeBalance', value: BigInt(amount) });
 
       return compoundResult(extrinsic);
     }
 
-    const extrinsic = chainApi.api.tx.nominationPools.join(amount, selectedPoolId);
+    const extrinsic = chainApi.dedot.tx.nominationPools.join(BigInt(amount), selectedPoolId);
 
     return compoundResult(extrinsic);
   }

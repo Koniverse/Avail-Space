@@ -9,17 +9,16 @@ import { getDefaultWeightV2 } from '@subwallet/extension-base/koni/api/tokens/wa
 import { _BALANCE_CHAIN_GROUP, _MANTA_ZK_CHAIN_GROUP, _ZK_ASSET_PREFIX } from '@subwallet/extension-base/services/chain-service/constants';
 import { _EvmApi, _SubstrateApi } from '@subwallet/extension-base/services/chain-service/types';
 import { _checkSmartContractSupportByChain, _getChainNativeTokenSlug, _getContractAddressOfToken, _getTokenOnChainAssetId, _getTokenOnChainInfo, _getTokenTypesSupportedByChain, _getXcmAssetMultilocation, _isBridgedToken, _isChainEvmCompatible, _isSubstrateRelayChain } from '@subwallet/extension-base/services/chain-service/utils';
-import { BalanceItem, PalletNominationPoolsPoolMember, SubscribeBasePalletBalance, SubscribeSubstratePalletBalance, TokenBalanceRaw } from '@subwallet/extension-base/types';
+import { BalanceItem, SubscribeBasePalletBalance, SubscribeSubstratePalletBalance, TokenBalanceRaw } from '@subwallet/extension-base/types';
 import { filterAssetsByChainAndType } from '@subwallet/extension-base/utils';
 import { combineLatest, Observable } from 'rxjs';
 
 import { ContractPromise } from '@polkadot/api-contract';
-import { AccountInfo } from '@polkadot/types/interfaces';
-import { Codec } from '@polkadot/types/types';
 import { BN, BN_ZERO } from '@polkadot/util';
 
 import { subscribeERC20Interval } from '../evm';
 import { subscribeEquilibriumTokenBalance } from './equilibrium';
+import { FrameSystemAccountInfo, PalletNominationPoolsPoolMember } from "dedot/chaintypes";
 
 export const subscribeSubstrateBalance = async (addresses: string[], chainInfo: _ChainInfo, assetMap: Record<string, _ChainAsset>, substrateApi: _SubstrateApi, evmApi: _EvmApi, callback: (rs: BalanceItem[]) => void) => {
   let unsubNativeToken: () => void;
@@ -38,7 +37,8 @@ export const subscribeSubstrateBalance = async (addresses: string[], chainInfo: 
 
   const substrateParams: SubscribeSubstratePalletBalance = {
     ...baseParams,
-    substrateApi: substrateApi.api
+    substrateApi: substrateApi.api,
+    dedot: substrateApi.dedot,
   };
 
   if (!_BALANCE_CHAIN_GROUP.kintsugi.includes(chain) && !_BALANCE_CHAIN_GROUP.genshiro.includes(chain) && !_BALANCE_CHAIN_GROUP.equilibrium_parachain.includes(chain)) {
@@ -97,72 +97,72 @@ export const subscribeSubstrateBalance = async (addresses: string[], chainInfo: 
 
 // handler according to different logic
 // eslint-disable-next-line @typescript-eslint/require-await
-const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo, substrateApi }: SubscribeSubstratePalletBalance) => {
+const subscribeWithSystemAccountPallet = async ({ addresses, callback, chainInfo, substrateApi, dedot }: SubscribeSubstratePalletBalance) => {
   const chainNativeTokenSlug = _getChainNativeTokenSlug(chainInfo);
 
-  const balanceSubscribe: Observable<Codec[]> = substrateApi.rx.query.system.account.multi(addresses);
+  const balanceSubscribe: Observable<FrameSystemAccountInfo[]> = new Observable<FrameSystemAccountInfo[]>((subscriber) => {
+    dedot.query.system.account.multi(addresses, (balances) => {
+      console.log(addresses, balances);
+      subscriber.next(balances);
+    })
+  });
 
-  let poolSubscribe: Observable<Codec[]> | undefined;
+  let poolSubscribe: Observable<(PalletNominationPoolsPoolMember | undefined)[]>;
 
-  if ((_isSubstrateRelayChain(chainInfo) && substrateApi.query.nominationPools)) {
-    poolSubscribe = substrateApi.rx.query.nominationPools.poolMembers?.multi(addresses);
-  }
-
-  if (!poolSubscribe) {
-    poolSubscribe = new Observable<Codec[]>((subscriber) => {
-      subscriber.next(addresses.map(() => ({
-        toPrimitive () {
-          return null;
-        }
-      } as Codec)));
+  if ((_isSubstrateRelayChain(chainInfo) && !!dedot.query.nominationPools.poolMembers)) {
+    poolSubscribe = new Observable((subscriber) => {
+      dedot.query.nominationPools.poolMembers.multi(addresses, (balances) => {
+        subscriber.next(balances);
+      })
+    });
+  } else {
+    poolSubscribe = new Observable((subscriber) => {
+      subscriber.next(addresses.map(() => undefined));
     });
   }
 
-  const subscription = combineLatest({ balances: balanceSubscribe, pools: poolSubscribe }).subscribe(({ balances: _balances, pools: poolMemberDatas }) => {
-    const balances = _balances as AccountInfo[];
-    const pooledStakingBalances: BN[] = [];
+  const subscription = combineLatest({ balances: balanceSubscribe, pools: poolSubscribe }).subscribe(({ balances: balances, pools: poolMemberDatas }) => {
+    const pooledStakingBalances: bigint[] = [];
 
-    for (const _poolMemberData of poolMemberDatas) {
-      const poolMemberData = _poolMemberData.toPrimitive() as unknown as PalletNominationPoolsPoolMember;
-
+    for (const poolMemberData of poolMemberDatas) {
       if (poolMemberData) {
-        let pooled = new BN(poolMemberData.points.toString());
+        let pooled = poolMemberData.points;
 
-        Object.entries(poolMemberData.unbondingEras).forEach(([, amount]) => {
-          pooled = pooled.add(new BN(amount));
+        Object.values(poolMemberData.unbondingEras).forEach(([_, amount]) => {
+          pooled = pooled + amount;
         });
 
         pooledStakingBalances.push(pooled);
       } else {
-        pooledStakingBalances.push(BN_ZERO);
+        pooledStakingBalances.push(0n);
       }
     }
 
-    const items: BalanceItem[] = balances.map((balance: AccountInfo, index) => {
-      let total = balance.data?.free?.toBn() || new BN(0);
-      const reserved = balance.data?.reserved?.toBn() || new BN(0);
+    const items: BalanceItem[] = balances.map((balance: FrameSystemAccountInfo, index) => {
+      let total = balance.data.free || 0n;
+      const reserved = balance.data.reserved || 0n;
       // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-      const miscFrozen = balance.data?.miscFrozen?.toBn() || balance?.data?.frozen?.toBn() || new BN(0);
-      const feeFrozen = balance.data?.feeFrozen?.toBn() || new BN(0);
+      const miscFrozen = balance.data.miscFrozen || balance.data.frozen || 0n;
+      // @ts-ignore
+      const feeFrozen = balance.data.feeFrozen || 0n;
 
-      let locked = reserved.add(miscFrozen);
+      let locked = reserved + miscFrozen;
 
-      total = total.add(reserved);
+      total = total + reserved;
 
-      const pooledStakingBalance: BN = pooledStakingBalances[index] || BN_ZERO;
+      const pooledStakingBalance = pooledStakingBalances[index] || 0n;
 
-      if (pooledStakingBalance.gt(BN_ZERO)) {
-        total = total.add(pooledStakingBalance);
-        locked = locked.add(pooledStakingBalance);
+      if (pooledStakingBalance > 0n) {
+        total = total + pooledStakingBalance;
+        locked = locked + pooledStakingBalance;
       }
 
-      const free = total.sub(locked);
+      const free = total - locked;
 
       return ({
         address: addresses[index],
         tokenSlug: chainNativeTokenSlug,
-        free: free.gte(BN_ZERO) ? free.toString() : '0',
+        free: free >= 0n ? free.toString() : '0',
         locked: locked.toString(),
         state: APIItemState.READY,
         substrateInfo: {

@@ -22,14 +22,18 @@ import { typesBundle } from '@polkadot/apps-config/api';
 import { ProviderInterface } from '@polkadot/rpc-provider/types';
 import { TypeRegistry } from '@polkadot/types/create';
 import { Registry } from '@polkadot/types/types';
-import { BN, formatBalance } from '@polkadot/util';
-import { defaults as addressDefaults } from '@polkadot/util-crypto/address/defaults';
+import { formatBalance } from '@polkadot/util';
+
+import { Dedot } from "dedot";
+import { CheckAppId, ProviderInterfaceAdapter } from "@subwallet/extension-base/services/chain-service/handler/dedot";
+import { RuntimeApis } from "@dedot/specs";
 
 export class SubstrateApi implements _SubstrateApi {
   chainSlug: string;
-  api: ApiPromise;
+  api!: ApiPromise;
+  dedot!: Dedot;
   providerName?: string;
-  provider: ProviderInterface;
+  provider!: ProviderInterface;
   apiUrl: string;
   metadata?: MetadataItem;
 
@@ -85,7 +89,7 @@ export class SubstrateApi implements _SubstrateApi {
     }
   }
 
-  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): ApiPromise {
+  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): [ApiPromise, Dedot] {
     const apiOption: ApiOptions = {
       provider,
       typesBundle,
@@ -136,12 +140,48 @@ export class SubstrateApi implements _SubstrateApi {
       api = new ApiPromise(apiOption);
     }
 
-    api.on('ready', this.onReady.bind(this));
+    const dedot = new Dedot({
+      provider: new ProviderInterfaceAdapter(provider),
+      throwOnUnknownApi: false,
+      runtimeApis: RuntimeApis,
+      signedExtensions: { CheckAppId },
+      cacheMetadata: true
+    });
+    dedot.connect().catch(console.error);
+
+    this.#awaitReady();
+
+    api.on('ready', this.#setApiReady);
+    dedot.on('ready', this.#setDedotReady);
     api.on('connected', this.onConnect.bind(this));
     api.on('disconnected', this.onDisconnect.bind(this));
     api.on('error', this.onError.bind(this));
+    dedot.on('error', () => this.onError.bind(this));
 
-    return api;
+    return [api, dedot];
+  }
+
+  #apiReady = false;
+  #dedotReady = false;
+
+  #setApiReady = () => {
+    this.#apiReady = true;
+  }
+
+  #setDedotReady = () => {
+    this.#dedotReady = true;
+  }
+
+  #readyTimer?: ReturnType<typeof setInterval>;
+  #awaitReady = () => {
+    this.#readyTimer && clearInterval(this.#readyTimer);
+    this.#readyTimer = setInterval(() => {
+      if (this.#apiReady && this.#dedotReady) {
+        this.onReady();
+
+        clearInterval(this.#readyTimer);
+      }
+    })
   }
 
   constructor (chainSlug: string, apiUrl: string, { externalApiPromise, metadata, providerName }: _ApiOptions = {}) {
@@ -150,10 +190,10 @@ export class SubstrateApi implements _SubstrateApi {
     this.providerName = providerName;
     this.registry = new TypeRegistry();
     this.metadata = metadata;
-    this.provider = this.createProvider(apiUrl);
-    this.api = this.createApi(this.provider, externalApiPromise);
-
     this.handleApiReady = createPromiseHandler<_SubstrateApi>();
+
+    this.provider = this.createProvider(apiUrl);
+    [this.api, this.dedot] = this.createApi(this.provider, externalApiPromise);
   }
 
   get isReady (): Promise<_SubstrateApi> {
@@ -165,18 +205,29 @@ export class SubstrateApi implements _SubstrateApi {
       return;
     }
 
+    console.log('Update URL', apiUrl, this.apiUrl);
+
     // Disconnect with old provider
     await this.disconnect();
+
     this.isApiReadyOnce = false;
-    this.api.off('ready', this.onReady.bind(this));
+    this.#apiReady = false;
+    this.#dedotReady = false;
+    clearInterval(this.#readyTimer);
+    this.#readyTimer = undefined;
+
+    this.api.off('ready', this.#setApiReady);
     this.api.off('connected', this.onConnect.bind(this));
     this.api.off('disconnected', this.onDisconnect.bind(this));
     this.api.off('error', this.onError.bind(this));
 
+    this.dedot.off('ready', this.#setDedotReady);
+    this.dedot.off('error', this.onError.bind(this));
+
     // Create new provider and api
     this.apiUrl = apiUrl;
     this.provider = this.createProvider(apiUrl);
-    this.api = this.createApi(this.provider);
+    [this.api, this.dedot] = this.createApi(this.provider);
   }
 
   connect (): void {
@@ -185,7 +236,7 @@ export class SubstrateApi implements _SubstrateApi {
     } else {
       this.updateConnectionStatus(_ChainConnectionStatus.CONNECTING);
 
-      this.api.connect()
+      Promise.all([this.api.connect(), this.dedot.connect()])
         .then(() => {
           this.api.isReady.then(() => {
             this.updateConnectionStatus(_ChainConnectionStatus.CONNECTED);
@@ -197,6 +248,7 @@ export class SubstrateApi implements _SubstrateApi {
   async disconnect () {
     try {
       await this.api.disconnect();
+      await this.dedot.disconnect();
     } catch (e) {
       console.error(e);
     }
@@ -216,6 +268,7 @@ export class SubstrateApi implements _SubstrateApi {
   }
 
   onReady (): void {
+    console.log('on ready!');
     this.fillApiInfo().then(() => {
       this.handleApiReady.resolve(this);
       this.isApiReady = true;
@@ -255,36 +308,30 @@ export class SubstrateApi implements _SubstrateApi {
   }
 
   async fillApiInfo (): Promise<void> {
-    const { api, registry } = this;
-    const DEFAULT_DECIMALS = registry.createType('u32', 12);
-    const DEFAULT_SS58 = registry.createType('u32', addressDefaults.prefix);
+    const { api, dedot, registry } = this;
+    console.log('dedot connection status', dedot.status);
 
-    this.specName = this.api.runtimeVersion.specName.toString();
-    this.specVersion = this.api.runtimeVersion.specVersion.toString();
+    this.specName = dedot.runtimeVersion.specName.toString();
+    this.specVersion = dedot.runtimeVersion.specVersion.toString();
 
-    const [systemChain, systemName, systemVersion] = await Promise.all([
-      api.rpc.system?.chain(),
-      api.rpc.system?.name(),
-      api.rpc.system?.version()
+    [this.systemChain, this.systemName, this.systemVersion] = await Promise.all([
+      dedot.rpc.system_chain(),
+      dedot.rpc.system_name(),
+      dedot.rpc.system_version()
     ]);
 
-    this.systemChain = systemChain.toString();
-    this.systemName = systemName.toString();
-    this.systemVersion = systemVersion.toString();
-
-    const properties = registry.createType('ChainProperties', { ss58Format: api.registry.chainSS58, tokenDecimals: api.registry.chainDecimals, tokenSymbol: api.registry.chainTokens });
-    const ss58Format = properties.ss58Format.unwrapOr(DEFAULT_SS58).toNumber();
-    const tokenSymbol = properties.tokenSymbol.unwrapOr([formatBalance.getDefaults().unit, ...DEFAULT_AUX]);
-    const tokenDecimals = properties.tokenDecimals.unwrapOr([DEFAULT_DECIMALS]);
+    const DEFAULT_DECIMALS = 12;
+    const properties = await dedot.rpc.system_properties();
+    const ss58Format = dedot.consts.system.ss58Prefix;
+    const tokenSymbol = properties.tokenSymbol ? [properties.tokenSymbol].flat() : [formatBalance.getDefaults().unit, ...DEFAULT_AUX];
+    const tokenDecimals = properties.tokenDecimals ? [properties.tokenDecimals].flat() : [DEFAULT_DECIMALS];
 
     registry.setChainProperties(registry.createType('ChainProperties', { ss58Format, tokenDecimals, tokenSymbol }));
 
     // first set up the UI helpers
     this.defaultFormatBalance = {
-      decimals: tokenDecimals.map((b: BN) => {
-        return b.toNumber();
-      }),
-      unit: tokenSymbol[0].toString()
+      decimals: tokenDecimals,
+      unit: tokenSymbol[0]
     };
 
     const defaultSection = Object.keys(api.tx)[0];

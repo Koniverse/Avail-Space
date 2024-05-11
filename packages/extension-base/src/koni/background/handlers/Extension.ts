@@ -1766,6 +1766,8 @@ export default class KoniExtension {
           to: to,
           substrateApi
         });
+
+        console.log(transaction);
       }
     } catch (e) {
       const error = e as Error;
@@ -4427,6 +4429,8 @@ export default class KoniExtension {
         }
       }, this.#timeAutoLock * 60 * 1000);
     }
+
+    console.log(type, request);
 
     switch (type) {
       /// Clone from PolkadotJs

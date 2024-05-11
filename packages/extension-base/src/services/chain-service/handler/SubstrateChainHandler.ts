@@ -206,10 +206,10 @@ export class SubstrateChainHandler extends AbstractChainHandler {
 
     // Return existed to avoid re-init metadata
     if (existed) {
-      existed.connect();
-
       if (apiUrl !== existed.apiUrl) {
         await existed.updateApiUrl(apiUrl);
+      } else {
+        existed.connect();
       }
 
       return existed;

@@ -4,5 +4,6 @@
 import { TransactionConfig } from 'web3-core';
 
 import { SubmittableExtrinsic } from '@polkadot/api/types';
+import { DedotExtrinsic } from "@subwallet/extension-base/services/transaction-service/types";
 
-export type TransactionData = SubmittableExtrinsic<'promise'> | TransactionConfig;
+export type TransactionData = SubmittableExtrinsic<'promise'> | TransactionConfig | DedotExtrinsic;

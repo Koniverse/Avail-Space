@@ -898,6 +898,7 @@ export default class EarningService implements StoppableServiceInterface, Persis
 
     const { slug } = params;
     const handler = this.getPoolHandler(slug);
+    console.log('validateYieldLeave', handler);
 
     if (handler) {
       return handler.validateYieldLeave(params.amount, params.address, params.fastLeave, params.selectedTarget);
