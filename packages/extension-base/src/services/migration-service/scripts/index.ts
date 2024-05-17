@@ -6,6 +6,7 @@ import MigrateTransactionHistoryBySymbol from '@subwallet/extension-base/service
 
 import BaseMigrationJob from '../Base';
 import MigrateAssetSetting from './databases/MigrateAssetSetting';
+import ClearMetadataDatabase from './ClearMetadataDatabase';
 
 export const EVERYTIME = '__everytime__';
 
@@ -35,5 +36,6 @@ export default <Record<string, typeof BaseMigrationJob>>{
   // [`${EVERYTIME}-1`]: AutoEnableChainsTokens
   '1.1.58-0___AVAIL': EnableAvailTuringChain,
   '1.1.62-01': MigrateAssetSetting,
-  '1.1.62-02': MigrateTransactionHistoryBySymbol
+  '1.1.53-02': MigrateTransactionHistoryBySymbol,
+  '1.1.61-01___AVAIL': ClearMetadataDatabase
 };
