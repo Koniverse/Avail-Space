@@ -5,7 +5,6 @@ import EnableAvailTuringChain from '@subwallet/extension-base/services/migration
 import MigrateTransactionHistoryBySymbol from '@subwallet/extension-base/services/migration-service/scripts/MigrateTransactionHistoryBySymbol';
 
 import BaseMigrationJob from '../Base';
-// import MigrateAssetSetting from './databases/MigrateAssetSetting';
 import MigrateAssetSetting from './databases/MigrateAssetSetting';
 import ClearMetadataDatabase from './ClearMetadataDatabase';
 
@@ -35,8 +34,8 @@ export default <Record<string, typeof BaseMigrationJob>>{
   // '1.1.41-01': DeleteChainStaking
   // '1.1.41-02': MigrateAssetSetting
   // [`${EVERYTIME}-1`]: AutoEnableChainsTokens
-  '1.1.53-01': MigrateAssetSetting,
-  '1.1.53-02': MigrateTransactionHistoryBySymbol,
   '1.1.58-0___AVAIL': EnableAvailTuringChain,
+  '1.1.62-01': MigrateAssetSetting,
+  '1.1.53-02': MigrateTransactionHistoryBySymbol,
   '1.1.61-01___AVAIL': ClearMetadataDatabase
 };
