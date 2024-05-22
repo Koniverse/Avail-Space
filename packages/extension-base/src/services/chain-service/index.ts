@@ -632,8 +632,6 @@ export class ChainService {
     await this.initAssetSettings();
     this.initAssetRefMap();
     await this.autoEnableTokens();
-
-    this.checkLatestData();
   }
 
   initAssetRefMap () {
