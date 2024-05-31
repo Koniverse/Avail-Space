@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import EnableAvailTuringChain from '@subwallet/extension-base/services/migration-service/scripts/EnableAvailTuringChain';
+import MigrateRemoveGenesisHash from '@subwallet/extension-base/services/migration-service/scripts/MigrateRemoveGenesisHash';
 import MigrateTransactionHistoryBySymbol from '@subwallet/extension-base/services/migration-service/scripts/MigrateTransactionHistoryBySymbol';
 
 import BaseMigrationJob from '../Base';
@@ -35,5 +36,6 @@ export default <Record<string, typeof BaseMigrationJob>>{
   // [`${EVERYTIME}-1`]: AutoEnableChainsTokens
   '1.1.58-0___AVAIL': EnableAvailTuringChain,
   '1.1.62-01': MigrateAssetSetting,
-  '1.1.62-02': MigrateTransactionHistoryBySymbol
+  '1.1.62-02': MigrateTransactionHistoryBySymbol,
+  '1.2.69-01': MigrateRemoveGenesisHash
 };

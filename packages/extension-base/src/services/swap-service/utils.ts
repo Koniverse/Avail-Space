@@ -58,7 +58,7 @@ export function getSwapAlternativeAsset (swapPair: SwapPair): string | undefined
 }
 
 export function getSwapAltToken (chainAsset: _ChainAsset): string | undefined {
-  return chainAsset.metadata?.alternativeSwapAsset as string;
+  return chainAsset?.metadata?.alternativeSwapAsset as string;
 }
 
 export function calculateSwapRate (fromAmount: string, toAmount: string, fromAsset: _ChainAsset, toAsset: _ChainAsset) {
