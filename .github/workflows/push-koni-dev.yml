@@ -73,3 +73,5 @@ jobs:
         description: |
           The Deployment has been completed.
           - Extension: ${{ steps.nextcloud_upload.outputs.SHAREABLE_URL }}
+          - Extension (Firefox): ${{ steps.nextcloud_upload_firefox.outputs.SHAREABLE_URL }}
+          - Web-runner: ${{ steps.netlify_deployment.outputs.deploy-url }}
