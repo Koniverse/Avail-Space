@@ -654,8 +654,6 @@ export class ChainService {
       if (latestChainInfo && latestChainInfo.length > 0) {
         const { needUpdateChainApiList, storedChainInfoList } = updateLatestChainInfo(this.dataMap, latestChainInfo);
 
-        console.log('here', needUpdateChainApiList, storedChainInfoList);
-
         this.dbService.bulkUpdateChainStore(storedChainInfoList).catch(console.error);
         this.updateChainSubscription();
 
