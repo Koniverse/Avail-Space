@@ -71,6 +71,39 @@
     gtag('js', new Date());
 
     gtag('config', 'G-LWNFG34MSP');
+
+    function fetchPackageJson() {
+      return fetch('/package.json')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch package.json');
+          }
+          return response.json();
+        });
+    }
+
+    function checkForUpdates() {
+      fetchPackageJson()
+        .then(packageJson => {
+          const metaTag = document.querySelector('meta[name="app:version"]');
+
+          if(!metaTag){
+            return;
+          }
+
+          const currentBuildVersion = metaTag.getAttribute('content');
+
+           if (currentBuildVersion !== packageJson.buildNumber) {
+                window.location.reload();
+           } else {
+              console.log('No updates available');
+              // Load other necessary scripts or perform other actions
+            }
+        })
+        .catch(error => {
+          console.error('Error fetching package.json:', error);
+        });
+    }
   </script>
 
   <!-- Import main JS logic -->

@@ -37,5 +37,7 @@ export default <Record<string, typeof BaseMigrationJob>>{
   '1.1.58-0___AVAIL': EnableAvailTuringChain,
   '1.1.62-01': MigrateAssetSetting,
   '1.1.62-02': MigrateTransactionHistoryBySymbol,
+  '1.1.69-03': MigrateAssetSetting,
+  '1.1.69-02': MigrateTransactionHistoryBySymbol,
   '1.2.69-01': MigrateRemoveGenesisHash
 };
