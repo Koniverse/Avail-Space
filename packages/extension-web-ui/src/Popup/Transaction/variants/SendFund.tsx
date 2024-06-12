@@ -792,6 +792,7 @@ const _SendFund = ({ className = '', modalContent }: Props): React.ReactElement<
           address={from}
           chain={chain}
           className='balance'
+          extrinsicType={extrinsicType}
           onBalanceReady={setIsBalanceReady}
           tokenSlug={asset}
         />
