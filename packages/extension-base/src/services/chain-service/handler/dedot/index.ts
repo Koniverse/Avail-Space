@@ -1,5 +1,5 @@
-import { SignedExtension } from "dedot";
 import {
+  SignedExtension,
   ProviderEvent,
   JsonRpcProvider,
   ConnectionStatus,
