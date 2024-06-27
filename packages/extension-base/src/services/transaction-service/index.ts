@@ -1230,17 +1230,17 @@ export default class TransactionService {
             return;
           }
 
-          if (txState.status.tag === 'InBlock') {
+          if (txState.status.type === 'BestChainBlockIncluded') {
             eventData.eventLogs = txState.events as any;
 
             if (!eventData.extrinsicHash || eventData.extrinsicHash === '' || !isHex(eventData.extrinsicHash)) {
               eventData.extrinsicHash = txState.txHash;
-              eventData.blockHash = txState.status.value;
+              eventData.blockHash = txState.status.value.blockHash;
               emitter.emit('extrinsicHash', eventData);
             }
           }
 
-          if (txState.status.tag === 'Finalized') {
+          if (txState.status.type === 'Finalized') {
             eventData.extrinsicHash = txState.txHash;
             eventData.eventLogs = txState.events as any;
 
@@ -1250,7 +1250,7 @@ export default class TransactionService {
               .forEach(({event: {palletEvent}}): void => {
                 if (isObject(palletEvent)) {
                   if (palletEvent.name === 'ExtrinsicFailed') {
-                    eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, palletEvent.data.dispatchError.tag));
+                    eventData.errors.push(new TransactionError(BasicTxErrorType.SEND_TRANSACTION_FAILED, palletEvent.data.dispatchError.type));
                     emitter.emit('error', eventData);
                   } else if (palletEvent.name === 'ExtrinsicSuccess') {
                     emitter.emit('success', eventData);
