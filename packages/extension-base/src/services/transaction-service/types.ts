@@ -7,10 +7,11 @@ import { TransactionConfig } from 'web3-core';
 
 import { SubmittableExtrinsic } from '@polkadot/api/promise/types';
 import { EventRecord } from '@polkadot/types/interfaces';
-import { ISubmittableExtrinsic } from '@dedot/types';
-import { Extrinsic } from '@dedot/codecs';
+import { Extrinsic } from 'dedot/codecs';
+import type { ISubmittableExtrinsic, ISubmittableResult, TransactionStatusV2 } from "dedot/types";
+import type { FrameSystemEventRecord } from "dedot/chaintypes";
 
-export type DedotExtrinsic = ISubmittableExtrinsic & Extrinsic;
+export type DedotExtrinsic = ISubmittableExtrinsic<ISubmittableResult<FrameSystemEventRecord, TransactionStatusV2>> & Extrinsic;
 
 export interface SWTransaction extends ValidateTransactionResponse, Partial<Pick<BaseRequestSign, 'ignoreWarnings'>> {
   id: string;

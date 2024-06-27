@@ -1,4 +1,4 @@
-import { SignedExtension, $, EventEmitter } from "dedot";
+import { SignedExtension } from "dedot";
 import {
   ProviderEvent,
   JsonRpcProvider,
@@ -6,31 +6,9 @@ import {
   SubscriptionInput,
   SubscriptionCallback,
   Subscription
-} from "@dedot/providers";
-import { BN } from "@polkadot/util";
+} from "dedot";
 import { ProviderInterface } from "@polkadot/rpc-provider/types";
-
-const overrideBigIntEncode = (shape: $.AnyShape) => {
-  const originSubEncode = shape.subEncode;
-
-  shape.subEncode = (buffer, value: any) => {
-    let nextValue = value;
-    if (typeof value === 'string' || value instanceof BN) {
-      nextValue = BigInt(value.toString());
-    }
-
-    return originSubEncode(buffer, nextValue as never);
-  };
-}
-
-overrideBigIntEncode($.u64);
-overrideBigIntEncode($.u128);
-overrideBigIntEncode($.u256);
-
-overrideBigIntEncode($.compact($.u64));
-overrideBigIntEncode($.compact($.u128));
-overrideBigIntEncode($.compact($.u256));
-
+import { EventEmitter } from "dedot/utils";
 
 export class CheckAppId extends SignedExtension<number> {
   override async init(): Promise<void> {

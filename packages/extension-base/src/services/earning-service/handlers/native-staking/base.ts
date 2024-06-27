@@ -9,7 +9,7 @@ import { EarningRewardHistoryItem, EarningRewardItem, HandleYieldStepData, Optim
 import { noop } from '@polkadot/util';
 
 import BasePoolHandler from '../base';
-import type { PalletStakingRewardDestination } from "dedot/chaintypes/substrate/types";
+import type { PalletStakingRewardDestination } from "dedot/chaintypes";
 
 export default abstract class BaseNativeStakingPoolHandler extends BasePoolHandler {
   public readonly type = YieldPoolType.NATIVE_STAKING;

@@ -24,14 +24,14 @@ import { TypeRegistry } from '@polkadot/types/create';
 import { Registry } from '@polkadot/types/types';
 import { formatBalance } from '@polkadot/util';
 
-import { Dedot } from "dedot";
+import { DedotClient } from "dedot";
 import { CheckAppId, ProviderInterfaceAdapter } from "@subwallet/extension-base/services/chain-service/handler/dedot";
-import { RuntimeApis } from "@dedot/specs";
+import { RuntimeApis } from "dedot/runtime-specs";
 
 export class SubstrateApi implements _SubstrateApi {
   chainSlug: string;
   api!: ApiPromise;
-  dedot!: Dedot;
+  dedot!: DedotClient;
   providerName?: string;
   provider!: ProviderInterface;
   apiUrl: string;
@@ -89,7 +89,7 @@ export class SubstrateApi implements _SubstrateApi {
     }
   }
 
-  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): [ApiPromise, Dedot] {
+  private createApi (provider: ProviderInterface, externalApiPromise?: ApiPromise): [ApiPromise, DedotClient] {
     const apiOption: ApiOptions = {
       provider,
       typesBundle,
@@ -140,7 +140,7 @@ export class SubstrateApi implements _SubstrateApi {
       api = new ApiPromise(apiOption);
     }
 
-    const dedot = new Dedot({
+    const dedot = new DedotClient({
       provider: new ProviderInterfaceAdapter(provider),
       throwOnUnknownApi: false,
       runtimeApis: RuntimeApis,

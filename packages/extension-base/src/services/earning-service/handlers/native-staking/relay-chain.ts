@@ -598,7 +598,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     return errors;
   }
 
-  async createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo, bondDest: PalletStakingRewardDestination = { tag: 'Staked'}): Promise<[TransactionData, YieldTokenBaseInfo]> {
+  async createJoinExtrinsic (data: SubmitJoinNativeStaking, positionInfo?: YieldPositionInfo, bondDest: PalletStakingRewardDestination = { type: 'Staked'}): Promise<[TransactionData, YieldTokenBaseInfo]> {
     const { address, amount, selectedValidators: targetValidators } = data;
     const chainApi = await this.substrateApi.isReady;
     const binaryAmount = BigInt(amount);
@@ -615,7 +615,7 @@ export default class RelayNativeStakingPoolHandler extends BaseNativeStakingPool
     });
 
     // eslint-disable-next-line @typescript-eslint/require-await
-    const compoundTransactions = async (bondTx: DedotExtrinsic, nominateTx: DedotExtrinsic): Promise<[TransactionData, YieldTokenBaseInfo]> => {
+    const compoundTransactions = async (bondTx: DedotExtrinsic, nominateTx: DedotExtrinsic): Promise<[DedotExtrinsic, YieldTokenBaseInfo]> => {
       const extrinsic = chainApi.dedot.tx.utility.batchAll([bondTx.call, nominateTx.call]);
       // const fees = await Promise.all([bondTx.paymentInfo(address), nominateTx.paymentInfo(address)]);
       // const totalFee = fees.reduce((previousValue, currentItem) => {
