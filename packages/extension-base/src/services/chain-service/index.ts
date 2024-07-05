@@ -565,8 +565,6 @@ export class ChainService {
   }
 
   public upsertCustomToken (token: _ChainAsset) {
-    const chainInfo = this.getChainInfoByKey(token.originChain);
-
     if (token.slug.length === 0) { // new token
       if (token.assetType === _AssetType.NATIVE) {
         const defaultSlug = this.generateSlugForNativeToken(token.originChain, token.assetType, token.symbol);
@@ -580,7 +578,7 @@ export class ChainService {
     }
 
     if (token.originChain && _isAssetFungibleToken(token)) {
-      token.hasValue = !chainInfo?.isTestnet;
+      token.hasValue = !(this.getChainInfoByKey(token.originChain)?.isTestnet);
     }
 
     const assetRegistry = this.getAssetRegistry();
