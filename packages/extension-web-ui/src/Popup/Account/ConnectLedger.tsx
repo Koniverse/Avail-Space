@@ -52,7 +52,7 @@ const Component: React.FC<Props> = (props: Props) => {
   const { accounts } = useSelector((state: RootState) => state.accountState);
 
   const networks = useMemo((): ChainItemType[] => supportedLedger.map((network) => ({
-    name: !network.isEthereum ? network.networkName.replace(' network', '') : network.networkName,
+    name: !network.isGeneric ? network.networkName.replace(' network', '') : network.networkName,
     slug: network.slug
   })).filter((n) => !!chainInfoMap[n.slug]), [chainInfoMap, supportedLedger]);
 
@@ -208,7 +208,8 @@ const Component: React.FC<Props> = (props: Props) => {
           genesisHash: selectedChain.genesisHash,
           hardwareType: 'ledger',
           name: item.name,
-          isEthereum: selectedChain.isEthereum
+          isEthereum: selectedChain.isEthereum,
+          isGeneric: selectedChain.isGeneric
         }))
       })
         .then(() => {
