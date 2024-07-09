@@ -55,13 +55,13 @@ const usePreviewYieldGroupInfo = (poolInfoMap: Record<string, YieldPoolInfo>): Y
       const chain = pool.chain;
 
       const group = pool.group;
+      const chainInfo = chainInfoMap[chain];
 
-      if (isRelatedToAstar(group)) {
+      if (!chainInfo || isRelatedToAstar(group)) {
         continue;
       }
 
       const exists = result[group];
-      const chainInfo = chainInfoMap[chain];
 
       if (exists) {
         let apy: undefined | number;

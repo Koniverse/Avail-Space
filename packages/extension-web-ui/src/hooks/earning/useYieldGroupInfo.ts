@@ -59,13 +59,13 @@ const useYieldGroupInfo = (): YieldGroupInfo[] => {
 
       if (chainsByAccountType.includes(chain)) {
         const group = pool.group;
+        const chainInfo = chainInfoMap[chain];
 
-        if (isRelatedToAstar(group)) {
+        if (!chainInfo || isRelatedToAstar(group)) {
           continue;
         }
 
         const exists = result[group];
-        const chainInfo = chainInfoMap[chain];
 
         if (exists) {
           let apy: undefined | number;

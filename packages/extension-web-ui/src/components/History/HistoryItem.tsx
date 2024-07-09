@@ -35,7 +35,7 @@ function getLink (data: TransactionHistoryDisplayItem, chainInfoMap: Record<stri
     originChainInfo = chainInfoMap[additionalInfo.originalChain] || chainInfo;
   }
 
-  if (data.extrinsicHash && data.extrinsicHash !== '') {
+  if (originChainInfo && data.extrinsicHash && data.extrinsicHash !== '') {
     return getExplorerLink(originChainInfo, data.extrinsicHash, 'tx');
   }
 
