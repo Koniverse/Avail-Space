@@ -3,7 +3,7 @@
 
 import { MenuItem, MenuItemType } from '@subwallet/extension-web-ui/components/Layout/parts/SideMenu/MenuItem';
 import { FAQS_URL, SUPPORT_MAIL, TERMS_OF_SERVICE_URL } from '@subwallet/extension-web-ui/constants';
-import { useTranslation } from '@subwallet/extension-web-ui/hooks';
+import { useNotification, useTranslation } from '@subwallet/extension-web-ui/hooks';
 import usePreloadView from '@subwallet/extension-web-ui/hooks/router/usePreloadView';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
 import { openInNewTab } from '@subwallet/extension-web-ui/utils';
@@ -12,8 +12,6 @@ import CN from 'classnames';
 import { ArrowCircleLeft, ArrowCircleRight, ArrowsLeftRight, Clock, Gear, MessengerLogo, NewspaperClipping, Vault, Wallet } from 'phosphor-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-
-import useNotification from '../../../../hooks/common/useNotification';
 
 export type Props = ThemeProps & {
   isCollapsed: boolean,
@@ -51,47 +49,91 @@ function Component ({ className,
       {
         label: t('Portfolio'),
         value: '/home',
-        icon: Wallet
+        icon: {
+          type: 'phosphor',
+          phosphorIcon: Wallet,
+          weight: 'fill'
+        }
       },
       {
         label: t('Earning'),
         value: '/home/earning',
-        icon: Vault
+        icon: {
+          type: 'phosphor',
+          phosphorIcon: Vault,
+          weight: 'fill'
+        }
       },
       // {
       //   label: t('dApps'),
       //   value: '/home/dapps',
-      //   icon: Globe
+      //   icon: {
+      //     type: 'phosphor',
+      //     phosphorIcon: Globe,
+      //     weight: 'fill'
+      //   }
       // },
       // {
       //   label: t('Mission Pools'),
       //   value: '/home/mission-pools',
-      //   icon: Parachute
+      //   icon: {
+      //     type: 'customIcon',
+      //     customIcon: (
+      //       <>
+      //         <Icon
+      //           phosphorIcon={Parachute}
+      //           type='phosphor'
+      //           weight='fill'
+      //         />
+      //         {(latestLiveMissionIds.length > 0) && <div className={CN('__active-count')}>{latestLiveMissionIds.length}</div>}
+      //       </>
+      //     )
+      //   }
       // },
       // {
       //   label: t('Crowdloans'),
       //   value: '/home/crowdloans',
-      //   icon: Rocket
+      //   icon: {
+      //     type: 'phosphor',
+      //     phosphorIcon: Rocket,
+      //     weight: 'fill'
+      //   }
       // },
       {
         label: t('Swap'),
         value: '/swap',
-        icon: ArrowsLeftRight
+        icon: {
+          type: 'phosphor',
+          phosphorIcon: ArrowsLeftRight,
+          weight: 'fill'
+        }
       },
       {
         label: t('Bridge'),
         value: '/bridge',
-        icon: NewspaperClipping
+        icon: {
+          type: 'phosphor',
+          phosphorIcon: NewspaperClipping,
+          weight: 'fill'
+        }
       },
       {
         label: t('History'),
         value: '/home/history',
-        icon: Clock
+        icon: {
+          type: 'phosphor',
+          phosphorIcon: Clock,
+          weight: 'fill'
+        }
       },
       {
         label: t('Settings'),
         value: '/settings',
-        icon: Gear
+        icon: {
+          type: 'phosphor',
+          phosphorIcon: Gear,
+          weight: 'fill'
+        }
       }
     ];
   }, [t]);
@@ -101,17 +143,29 @@ function Component ({ className,
       // {
       //   label: t('FAQs'),
       //   value: 'faqs',
-      //   icon: Info
+      //   icon: {
+      //     type: 'phosphor',
+      //     phosphorIcon: Info,
+      //     weight: 'fill'
+      //   }
       // },
       {
         label: t('Contact'),
         value: 'contact',
-        icon: MessengerLogo
+        icon: {
+          type: 'phosphor',
+          phosphorIcon: MessengerLogo,
+          weight: 'fill'
+        }
       }
       // {
       //   label: t('Terms of services'),
       //   value: 'tos',
-      //   icon: ArrowSquareUpRight
+      //   icon: {
+      //     type: 'phosphor',
+      //     phosphorIcon: ArrowSquareUpRight,
+      //     weight: 'fill'
+      //   }
       // }
     ];
   }, [t]);
