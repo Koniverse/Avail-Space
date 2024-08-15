@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { PageWrapper } from '@subwallet/extension-web-ui/components';
+import { AppOnlineContentContextProvider } from '@subwallet/extension-web-ui/contexts/AppOnlineContentProvider';
+import { AppPopupModalContextProvider } from '@subwallet/extension-web-ui/contexts/AppPopupModalContext';
 import ErrorFallback from '@subwallet/extension-web-ui/Popup/ErrorFallback';
 import { Root } from '@subwallet/extension-web-ui/Popup/Root';
 import { i18nPromise } from '@subwallet/extension-web-ui/utils';
@@ -68,6 +70,7 @@ const NftItemDetail = new LazyLoader('NftItemDetail', () => import('@subwallet/e
 const NftCollections = new LazyLoader('NftCollections', () => import('@subwallet/extension-web-ui/Popup/Home/Nfts/NftCollections'));
 const NftCollectionDetail = new LazyLoader('NftCollectionDetail', () => import('@subwallet/extension-web-ui/Popup/Home/Nfts/NftCollectionDetail'));
 const NftImport = new LazyLoader('NftImport', () => import('@subwallet/extension-web-ui/Popup/Home/Nfts/NftImport'));
+const NftEntry = new LazyLoader('NftEntry', () => import('@subwallet/extension-web-ui/Popup/Home/Nfts/NftEntry'));
 
 const InscriptionItems = new LazyLoader('InscriptionItems', () => import('@subwallet/extension-web-ui/Popup/Home/Inscriptions/InscriptionItemList'));
 const InscriptionItemDetail = new LazyLoader('InscriptionItemDetail', () => import('@subwallet/extension-web-ui/Popup/Home/Inscriptions/InscriptionItemDetail'));
@@ -165,6 +168,16 @@ export function Example () {
   </PageWrapper>;
 }
 
+export function RootWrapper () {
+  return (
+    <AppPopupModalContextProvider>
+      <AppOnlineContentContextProvider>
+        <Root />
+      </AppOnlineContentContextProvider>
+    </AppPopupModalContextProvider>
+  );
+}
+
 export function NestedOutlet () {
   return <Outlet context={useOutletContext()} />;
 }
@@ -173,7 +186,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     loader: () => i18nPromise,
-    element: <Root />,
+    element: <RootWrapper />,
     errorElement: <ErrorFallback />,
     children: [
       {
@@ -191,8 +204,7 @@ export const router = createBrowserRouter([
           Statistics.generateRouterObject('statistics'),
           TokenDetailList.generateRouterObject('tokens/detail/:slug'),
           {
-            path: 'nfts',
-            element: <NestedOutlet />,
+            ...NftEntry.generateRouterObject('nfts'),
             children: [
               NftCollections.generateRouterObject('collections'),
               NftCollectionDetail.generateRouterObject('collection-detail'),
