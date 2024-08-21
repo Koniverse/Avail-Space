@@ -9,7 +9,7 @@ import { ALL_ACCOUNT_KEY } from '@subwallet/extension-base/constants';
 import { checkBalanceWithTransactionFee, checkSigningAccountForTransaction, checkSupportForTransaction, estimateFeeForTransaction } from '@subwallet/extension-base/core/logic-validation/transfer';
 import KoniState from '@subwallet/extension-base/koni/background/handlers/State';
 import { ChainService } from '@subwallet/extension-base/services/chain-service';
-import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getEvmChainId, _isChainEvmCompatible } from '@subwallet/extension-base/services/chain-service/utils';
+import { _getAssetDecimals, _getAssetSymbol, _getChainNativeTokenBasicInfo, _getChainNativeTokenSlug, _getEvmChainId, _isChainEvmCompatible } from '@subwallet/extension-base/services/chain-service/utils';
 import { EventService } from '@subwallet/extension-base/services/event-service';
 import { HistoryService } from '@subwallet/extension-base/services/history-service';
 import { EXTENSION_REQUEST_URL } from '@subwallet/extension-base/services/request-service/constants';
@@ -598,6 +598,12 @@ export default class TransactionService {
         break;
       }
 
+      case ExtrinsicType.SET_FEE_TOKEN: {
+        historyItem.additionalInfo = parseTransactionData<ExtrinsicType.SET_FEE_TOKEN>(transaction.data);
+
+        break;
+      }
+
       case ExtrinsicType.UNKNOWN:
         break;
     }
@@ -839,7 +845,7 @@ export default class TransactionService {
     const payload = (transaction as EvmSendTransactionRequest);
     const evmApi = this.state.chainService.getEvmApi(chain);
     const chainInfo = this.state.chainService.getChainInfoByKey(chain);
-
+    const hasError = !!(payload.errors && payload.errors.length > 0);
     const accountPair = keyring.getPair(address);
     const account: AccountJson = { address, ...accountPair.meta };
 
@@ -852,11 +858,11 @@ export default class TransactionService {
 
     // Fill contract info
     if (!payload.parseData) {
-      const isToContract = await isContractAddress(payload.to || '', evmApi);
-
-      payload.isToContract = isToContract;
-
       try {
+        const isToContract = await isContractAddress(payload.to || '', evmApi);
+
+        payload.isToContract = isToContract;
+
         payload.parseData = isToContract
           ? payload.data
             ? (await parseContractInput(payload.data || '', payload.to || '', chainInfo)).result
@@ -876,11 +882,13 @@ export default class TransactionService {
     if (!payload.nonce) {
       const evmApi = this.state.chainService.getEvmApi(chain);
 
-      payload.nonce = await evmApi.api.eth.getTransactionCount(address);
+      if (evmApi.isApiConnected) {
+        payload.nonce = await evmApi?.api.eth.getTransactionCount(address);
+      }
     }
 
     if (!payload.chainId) {
-      payload.chainId = chainInfo.evmInfo?.evmChainId ?? 1;
+      payload.chainId = chainInfo?.evmInfo?.evmChainId ?? 1;
     }
 
     // Autofill from
@@ -891,8 +899,10 @@ export default class TransactionService {
     const isExternal = !!account.isExternal;
     const isInjected = !!account.isInjected;
 
-    // generate hashPayload for EVM transaction
-    payload.hashPayload = this.generateHashPayload(chain, payload);
+    if (!hasError) {
+      // generate hashPayload for EVM transaction
+      payload.hashPayload = this.generateHashPayload(chain, payload);
+    }
 
     const emitter = new EventEmitter<TransactionEventMap>();
 

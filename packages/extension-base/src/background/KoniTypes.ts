@@ -528,7 +528,7 @@ export enum ExtrinsicType {
 
   SWAP = 'swap',
 
-  // SET_FEE_TOKEN = 'set_fee-token',
+  SET_FEE_TOKEN = 'set_fee-token',
 
   EVM_EXECUTE = 'evm.execute',
   UNKNOWN = 'unknown'
@@ -583,7 +583,8 @@ export interface ExtrinsicDataTypeMap {
 
   [ExtrinsicType.EVM_EXECUTE]: TransactionConfig,
   [ExtrinsicType.CROWDLOAN]: any,
-  [ExtrinsicType.SWAP]: SwapTxData
+  [ExtrinsicType.SWAP]: SwapTxData,
+  [ExtrinsicType.SET_FEE_TOKEN]: RequestChangeFeeToken,
   [ExtrinsicType.UNKNOWN]: any
 }
 
@@ -631,6 +632,7 @@ export interface AmountData extends BasicTokenInfo {
 
 export interface FeeData extends AmountData {
   tooHigh?: boolean;
+  feeTokenSlug: string;
 }
 
 export interface AmountDataWithId extends AmountData {
@@ -1278,12 +1280,14 @@ export interface EvmSignatureRequest extends EvmSignRequest {
   id: string;
   type: string;
   payload: unknown;
+  errors?: Error[]
 }
 
 export interface EvmSendTransactionRequest extends TransactionConfig, EvmSignRequest {
   estimateGas: string;
   parseData: EvmTransactionData;
   isToContract: boolean;
+  errors?: TransactionError[]
 }
 
 export type EvmWatchTransactionRequest = EvmSendTransactionRequest;
@@ -1331,13 +1335,20 @@ export interface AddTokenRequestExternal {
   contractError: boolean;
 }
 
+export interface ErrorNetworkConnection {
+  networkKey: string,
+  address: string,
+  errors: Error[]
+}
+
 export interface ConfirmationDefinitions {
   addNetworkRequest: [ConfirmationsQueueItem<_NetworkUpsertParams>, ConfirmationResult<null>],
   addTokenRequest: [ConfirmationsQueueItem<AddTokenRequestExternal>, ConfirmationResult<boolean>],
   switchNetworkRequest: [ConfirmationsQueueItem<SwitchNetworkRequest>, ConfirmationResult<boolean>],
   evmSignatureRequest: [ConfirmationsQueueItem<EvmSignatureRequest>, ConfirmationResult<string>],
   evmSendTransactionRequest: [ConfirmationsQueueItem<EvmSendTransactionRequest>, ConfirmationResult<string>]
-  evmWatchTransactionRequest: [ConfirmationsQueueItem<EvmWatchTransactionRequest>, ConfirmationResult<string>]
+  evmWatchTransactionRequest: [ConfirmationsQueueItem<EvmWatchTransactionRequest>, ConfirmationResult<string>],
+  errorConnectNetwork: [ConfirmationsQueueItem<ErrorNetworkConnection>, ConfirmationResult<null>]
 }
 
 export type ConfirmationType = keyof ConfirmationDefinitions;
@@ -1516,6 +1527,7 @@ export interface ResponseQrSignEvm {
 export interface RequestChangeFeeToken {
   currentFeeToken?: string;
   selectedFeeToken: string;
+  convertedFeeAmount: string;
 }
 
 /// Transfer
@@ -2433,6 +2445,10 @@ export interface KoniRequestSignatures {
   'pri(swapService.getLatestQuote)': [SwapRequest, SwapQuoteResponse];
   'pri(swapService.validateSwapProcess)': [ValidateSwapProcessParams, TransactionError[]];
   /* Swap */
+
+  /* Ledger */
+
+  'pri(ledger.generic.allow)': [null, string[], string[]];
 }
 
 export interface ApplicationMetadataType {
