@@ -9,10 +9,10 @@ import { useDefaultNavigate, useSelector } from '@subwallet/extension-web-ui/hoo
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
 import { computeStatus } from '@subwallet/extension-web-ui/utils';
-import { SwScreenLayout, SwScreenLayoutProps } from '@subwallet/react-ui';
+import { Icon, SwScreenLayout, SwScreenLayoutProps } from '@subwallet/react-ui';
 import { SwTabBarItem } from '@subwallet/react-ui/es/sw-tab-bar';
 import CN from 'classnames';
-import { Aperture, Clock, Vault, Wallet } from 'phosphor-react';
+import { Aperture, Clock, Parachute, Vault, Wallet } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -98,24 +98,24 @@ const Component = ({ children, className, footer, headerIcons, isSetTitleContext
     //   key: 'dapps',
     //   url: '/home/dapps'
     // },
-    // {
-    //   icon: {
-    //     type: 'customIcon',
-    //     customIcon: (
-    //       <>
-    //         <Icon
-    //           phosphorIcon={Parachute}
-    //           type='phosphor'
-    //           weight='fill'
-    //         />
-    //         {(latestLiveMissionIds.length > 0) && <div className={CN('__active-count')}>{latestLiveMissionIds.length}</div>}
-    //       </>
-    //     )
-    //   },
-    //   label: t('Missions'),
-    //   key: 'mission-pools',
-    //   url: '/home/mission-pools'
-    // },
+    {
+      icon: {
+        type: 'customIcon',
+        customIcon: (
+          <>
+            <Icon
+              phosphorIcon={Parachute}
+              type='phosphor'
+              weight='fill'
+            />
+            {(latestLiveMissionIds.length > 0) && <div className={CN('__active-count')}>{latestLiveMissionIds.length}</div>}
+          </>
+        )
+      },
+      label: t('Missions'),
+      key: 'mission-pools',
+      url: '/home/mission-pools'
+    },
     // {
     //   icon: {
     //     type: 'phosphor',

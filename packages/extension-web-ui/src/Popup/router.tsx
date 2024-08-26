@@ -150,7 +150,7 @@ const EarningPreviewOutlet = new LazyLoader('EarningPreviewOutlet', () => import
 // const CheckCrowdloanContributions = new LazyLoader('CrowdloanContributionsResult', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign/CheckCrowdloanContributions'));
 // const CrowdloanContributionsResult = new LazyLoader('CrowdloanContributionsResult', () => import('@subwallet/extension-web-ui/Popup/CrowdloanUnlockCampaign/CrowdloanContributionsResult'));
 
-// const MissionPool = new LazyLoader('MissionPool', () => import('@subwallet/extension-web-ui/Popup/MissionPool'));
+const MissionPool = new LazyLoader('MissionPool', () => import('@subwallet/extension-web-ui/Popup/MissionPool'));
 
 /* 404 */
 
@@ -229,7 +229,7 @@ export const router = createBrowserRouter([
               EarningPositionDetail.generateRouterObject('position-detail')
             ]
           },
-          // MissionPool.generateRouterObject('mission-pools'),
+          MissionPool.generateRouterObject('mission-pools'),
           History.generateRouterObject('history'),
           History.generateRouterObject('history/:address/:chain/:extrinsicHashOrId')
           // DApps.generateRouterObject('dapps')
