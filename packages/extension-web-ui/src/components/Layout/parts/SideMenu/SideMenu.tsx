@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { MenuItem, MenuItemType } from '@subwallet/extension-web-ui/components/Layout/parts/SideMenu/MenuItem';
-import { FAQS_URL, SUPPORT_MAIL, TERMS_OF_SERVICE_URL } from '@subwallet/extension-web-ui/constants';
-import { useNotification, useTranslation } from '@subwallet/extension-web-ui/hooks';
+import { FAQS_URL, MISSIONS_POOL_LIVE_ID, SUPPORT_MAIL, TERMS_OF_SERVICE_URL } from '@subwallet/extension-web-ui/constants';
+import { useNotification, useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
+import { useLocalStorage } from '@subwallet/extension-web-ui/hooks/common/useLocalStorage';
 import usePreloadView from '@subwallet/extension-web-ui/hooks/router/usePreloadView';
+import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
-import { openInNewTab } from '@subwallet/extension-web-ui/utils';
+import { computeStatus, openInNewTab } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, Image } from '@subwallet/react-ui';
 import CN from 'classnames';
-import { ArrowCircleLeft, ArrowCircleRight, ArrowsLeftRight, Clock, Gear, MessengerLogo, NewspaperClipping, Vault, Wallet } from 'phosphor-react';
+import { ArrowCircleLeft, ArrowCircleRight, ArrowsLeftRight, Clock, Gear, MessengerLogo, NewspaperClipping, Parachute, Vault, Wallet } from 'phosphor-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -26,6 +28,21 @@ function Component ({ className,
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const { t } = useTranslation();
   const notify = useNotification();
+
+
+  const { missions } = useSelector((state: RootState) => state.missionPool);
+
+  const [storedLiveMissionIds, setStoredLiveMissionIds] = useLocalStorage<number[]>(MISSIONS_POOL_LIVE_ID, []);
+
+  const liveMissionIds = useMemo(() => {
+    return missions
+      .filter((item) => computeStatus(item) === 'live')
+      .map((mission) => mission.id);
+  }, [missions]);
+
+  const latestLiveMissionIds = useMemo(() => {
+    return liveMissionIds.filter((id) => !storedLiveMissionIds.includes(id));
+  }, [liveMissionIds, storedLiveMissionIds]);
 
   usePreloadView([
     'Home',
@@ -73,23 +90,23 @@ function Component ({ className,
       //     weight: 'fill'
       //   }
       // },
-      // {
-      //   label: t('Mission Pools'),
-      //   value: '/home/mission-pools',
-      //   icon: {
-      //     type: 'customIcon',
-      //     customIcon: (
-      //       <>
-      //         <Icon
-      //           phosphorIcon={Parachute}
-      //           type='phosphor'
-      //           weight='fill'
-      //         />
-      //         {(latestLiveMissionIds.length > 0) && <div className={CN('__active-count')}>{latestLiveMissionIds.length}</div>}
-      //       </>
-      //     )
-      //   }
-      // },
+      {
+        label: t('Mission Pools'),
+        value: '/home/mission-pools',
+        icon: {
+          type: 'customIcon',
+          customIcon: (
+            <>
+              <Icon
+                phosphorIcon={Parachute}
+                type='phosphor'
+                weight='fill'
+              />
+              {(latestLiveMissionIds.length > 0) && <div className={CN('__active-count')}>{latestLiveMissionIds.length}</div>}
+            </>
+          )
+        }
+      },
       // {
       //   label: t('Crowdloans'),
       //   value: '/home/crowdloans',
@@ -136,7 +153,7 @@ function Component ({ className,
         }
       }
     ];
-  }, [t]);
+  }, [latestLiveMissionIds.length, t]);
 
   const staticMenuItems = useMemo<MenuItemType[]>(() => {
     return [
@@ -194,8 +211,12 @@ function Component ({ className,
       return;
     }
 
+    if (value === '/home/mission-pools' && latestLiveMissionIds.length > 0) {
+      setStoredLiveMissionIds(liveMissionIds);
+    }
+
     navigate(`${value}`);
-  }, [navigate, showComingSoon]);
+  }, [latestLiveMissionIds.length, liveMissionIds, navigate, setStoredLiveMissionIds, showComingSoon]);
 
   const goHome = useCallback(() => {
     navigate('/home');
