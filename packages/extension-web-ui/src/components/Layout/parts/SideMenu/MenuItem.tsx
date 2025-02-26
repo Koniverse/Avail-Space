@@ -12,6 +12,7 @@ export type MenuItemType = {
   label: string;
   value: string;
   icon: SwIconProps;
+  disabled?: boolean;
 };
 
 type Props = MenuItemType & ThemeProps & {
@@ -21,16 +22,22 @@ type Props = MenuItemType & ThemeProps & {
   isComingSoon?: boolean;
 };
 
-function Component ({ className = '', icon, isActivated, isComingSoon, label, onClick, showToolTip, value }: Props): React.ReactElement<Props> {
+function Component ({ className = '', disabled, icon, isActivated, isComingSoon, label, onClick, showToolTip, value }: Props): React.ReactElement<Props> {
   const { t } = useTranslation();
   const _onClick = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+
     onClick(value);
-  }, [value, onClick]);
+  }, [disabled, onClick, value]);
 
   return (
     <div
       className={CN(className, {
-        '-activated': isActivated
+        '-activated': isActivated,
+        '-disabled': disabled,
+        '-can-hover': !(isActivated || disabled)
       })}
       onClick={_onClick}
       tabIndex={-1}
@@ -125,11 +132,9 @@ export const MenuItem = styled(Component)<Props>(({ theme: { token } }: Props) =
       minWidth: '12px'
     },
 
-    '&:hover': {
-      backgroundColor: token.colorBgInput
-    },
+    '&.-can-hover:hover': {
+      backgroundColor: token.colorBgInput,
 
-    '&:not(.-activated):hover': {
       '.__icon': {
         color: token.colorTextLight1
       },
@@ -149,6 +154,11 @@ export const MenuItem = styled(Component)<Props>(({ theme: { token } }: Props) =
       '.__label': {
         color: token.colorTextLight1
       }
+    },
+
+    '&.-disabled': {
+      opacity: 0.4,
+      cursor: 'not-allowed'
     }
   });
 });

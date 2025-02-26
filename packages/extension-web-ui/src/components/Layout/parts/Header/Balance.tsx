@@ -1,31 +1,31 @@
 // Copyright 2019-2022 @polkadot/extension-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { AccountChainType, AccountProxyType, BuyTokenInfo } from '@subwallet/extension-base/types';
 import { balanceNoPrefixFormater, formatNumber } from '@subwallet/extension-base/utils';
-import { ReceiveQrModal, TokensSelectorModal } from '@subwallet/extension-web-ui/components/Modal';
-import { AccountSelectorModal } from '@subwallet/extension-web-ui/components/Modal/AccountSelectorModal';
+import { ReceiveModal } from '@subwallet/extension-web-ui/components';
 import { BaseModal } from '@subwallet/extension-web-ui/components/Modal/BaseModal';
-import { BUY_TOKEN_MODAL, DEFAULT_TRANSFER_PARAMS, TRANSACTION_TRANSFER_MODAL, TRANSFER_TRANSACTION } from '@subwallet/extension-web-ui/constants';
+import { BUY_TOKEN_MODAL, DEFAULT_TRANSFER_PARAMS, OFF_RAMP_DATA, OFF_RAMP_TRANSACTION_TRANSFER_MODAL, TRANSACTION_TRANSFER_MODAL, TRANSFER_TRANSACTION } from '@subwallet/extension-web-ui/constants';
 import { DataContext } from '@subwallet/extension-web-ui/contexts/DataContext';
 import { HomeContext } from '@subwallet/extension-web-ui/contexts/screen/HomeContext';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
-import { useNotification, useReceiveQR, useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
+import { BackgroundColorMap, WebUIContext } from '@subwallet/extension-web-ui/contexts/WebUIContext';
+import { useCoreReceiveModalHelper, useGetChainSlugsByAccount, useNotification, useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
 import { reloadCron, saveShowBalance } from '@subwallet/extension-web-ui/messaging';
 import BuyTokens from '@subwallet/extension-web-ui/Popup/BuyTokens';
 import Transaction from '@subwallet/extension-web-ui/Popup/Transaction/Transaction';
 import SendFund from '@subwallet/extension-web-ui/Popup/Transaction/variants/SendFund';
+import SendFundOffRamp from '@subwallet/extension-web-ui/Popup/Transaction/variants/SendFundOffRamp';
 import { RootState } from '@subwallet/extension-web-ui/stores';
-import { BuyTokenInfo, PhosphorIcon, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { getAccountType, isAccountAll } from '@subwallet/extension-web-ui/utils';
+import { PhosphorIcon, ThemeProps } from '@subwallet/extension-web-ui/types';
+import { getTransactionFromAccountProxyValue, isSoloTonAccountProxy, removeStorage } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, ModalContext, Number, Tag, Tooltip, Typography } from '@subwallet/react-ui';
 import CN from 'classnames';
-import { ArrowFatLinesDown, ArrowsClockwise, Eye, EyeSlash, PaperPlaneTilt, ShoppingCartSimple } from 'phosphor-react';
+import { ArrowsClockwise, CopySimple, Eye, EyeSlash, PaperPlaneTilt, ShoppingCartSimple } from 'phosphor-react';
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useLocalStorage } from 'usehooks-ts';
-
-import { isEthereumAddress } from '@polkadot/util-crypto';
 
 export type Props = ThemeProps
 
@@ -40,11 +40,13 @@ type Action = {
 function Component ({ className }: Props): React.ReactElement<Props> {
   const dataContext = useContext(DataContext);
   const { isWebUI } = useContext(ScreenContext);
+  const { setBackground } = useContext(WebUIContext);
   const locationPathname = useLocation().pathname;
   const tokenGroupSlug = useParams()?.slug;
   const isShowBalance = useSelector((state: RootState) => state.settings.isShowBalance);
   const { currencyData } = useSelector((state: RootState) => state.price);
   const [reloading, setReloading] = useState(false);
+  const allowedChains = useGetChainSlugsByAccount();
 
   const onChangeShowBalance = useCallback(() => {
     saveShowBalance(!isShowBalance).catch(console.error);
@@ -63,19 +65,15 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   const { t } = useTranslation();
   const { accountBalance: { totalBalanceInfo }, tokenGroupStructure: { tokenGroupMap } } = useContext(HomeContext);
   const { activeModal, inactiveModal } = useContext(ModalContext);
-  const { accountSelectorItems,
-    onOpenReceive,
-    openSelectAccount,
-    openSelectToken,
-    selectedAccount,
-    selectedNetwork,
-    tokenSelectorItems } = useReceiveQR(_tokenGroupSlug);
+  const { onOpenReceive, receiveModalProps } = useCoreReceiveModalHelper(_tokenGroupSlug);
 
+  const currentAccountProxy = useSelector((state) => state.accountState.currentAccountProxy);
+  const isAllAccount = useSelector((state) => state.accountState.isAllAccount);
   const { tokens } = useSelector((state) => state.buyService);
-  const [sendFundKey, setSendFundKey] = useState<string>('sendFundKey');
-  const [buyTokensKey, setBuyTokensKey] = useState<string>('buyTokensKey');
+  const [isSendFundVisible, setIsSendFundVisible] = useState<boolean>(false);
+  const [isSendFundOffRampVisible, setIsSendFundOffRampVisible] = useState<boolean>(false);
+  const [isBuyTokensVisible, setIsBuyTokensVisible] = useState<boolean>(false);
   const [buyTokenSymbol, setBuyTokenSymbol] = useState<string>('');
-  const { currentAccount, isAllAccount } = useSelector((state) => state.accountState);
   const notify = useNotification();
 
   const isTotalBalanceDecrease = totalBalanceInfo.change.status === 'decrease';
@@ -83,7 +81,6 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   const totalChangeValue = totalBalanceInfo.change.value;
   const totalValue = totalBalanceInfo.convertedValue;
 
-  const accounts = useSelector((state) => state.accountState.accounts);
   const [, setStorage] = useLocalStorage(TRANSFER_TRANSACTION, DEFAULT_TRANSFER_PARAMS);
 
   const buyInfos = useMemo(() => {
@@ -92,29 +89,20 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     }
 
     const slug = tokenGroupSlug || '';
+    // @ts-ignore
     const slugs = tokenGroupMap[slug] ? tokenGroupMap[slug] : [slug];
     const result: BuyTokenInfo[] = [];
 
-    for (const [slug, buyInfo] of Object.entries(tokens)) {
-      if (slugs.includes(slug)) {
-        const supportType = buyInfo.support;
-
-        if (isAccountAll(currentAccount?.address || '')) {
-          const support = accounts.some((account) => supportType === getAccountType(account.address));
-
-          if (support) {
-            result.push(buyInfo);
-          }
-        } else {
-          if (currentAccount?.address && (supportType === getAccountType(currentAccount?.address))) {
-            result.push(buyInfo);
-          }
-        }
+    Object.values(tokens).forEach((item) => {
+      if (!allowedChains.includes(item.network) || !slugs.includes(item.slug)) {
+        return;
       }
-    }
+
+      result.push(item);
+    });
 
     return result;
-  }, [accounts, currentAccount?.address, locationPathname, tokenGroupMap, tokenGroupSlug, tokens]);
+  }, [allowedChains, locationPathname, tokenGroupMap, tokenGroupSlug, tokens]);
 
   const onOpenBuyTokens = useCallback(() => {
     let symbol = '';
@@ -130,6 +118,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     setBuyTokenSymbol(symbol);
 
     activeModal(BUY_TOKEN_MODAL);
+    setIsBuyTokensVisible(true);
   }, [activeModal, buyInfos]);
 
   useEffect(() => {
@@ -137,7 +126,11 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   }, [dataContext]);
 
   const onOpenSendFund = useCallback(() => {
-    if (currentAccount && currentAccount.isReadOnly) {
+    if (!currentAccountProxy) {
+      return;
+    }
+
+    if (currentAccountProxy.accountType === AccountProxyType.READ_ONLY) {
       notify({
         message: t('The account you are using is read-only, you cannot send assets with it'),
         type: 'info',
@@ -147,46 +140,62 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       return;
     }
 
-    const address = currentAccount ? isAccountAll(currentAccount.address) ? '' : currentAccount.address : '';
-
     setStorage({
       ...DEFAULT_TRANSFER_PARAMS,
-      from: address,
+      fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy),
       defaultSlug: tokenGroupSlug || ''
     });
+    setIsSendFundVisible(true);
     activeModal(TRANSACTION_TRANSFER_MODAL);
   },
-  [currentAccount, setStorage, tokenGroupSlug, activeModal, notify, t]
+  [currentAccountProxy, setStorage, tokenGroupSlug, activeModal, notify, t]
   );
 
-  useEffect(() => {
-    setSendFundKey(`sendFundKey-${Date.now()}`);
-    setBuyTokensKey(`buyTokensKey-${Date.now()}`);
-  }, [locationPathname]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const onOpen = searchParams.get('onOpen') || '';
 
-  // useEffect(() => {
-  //   const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
-  //
-  //   setBackground(backgroundColor);
-  // }, [isTotalBalanceDecrease, setBackground]);
+  useEffect(() => {
+    if (onOpen === 'true') {
+      setIsSendFundOffRampVisible(true);
+      activeModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
+      searchParams.delete('onOpen');
+      setSearchParams(searchParams);
+    }
+  }, [onOpen, activeModal, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
+
+    setBackground(backgroundColor);
+  }, [isTotalBalanceDecrease, setBackground]);
 
   const handleCancelTransfer = useCallback(() => {
     inactiveModal(TRANSACTION_TRANSFER_MODAL);
-    setSendFundKey(`sendFundKey-${Date.now()}`);
+    setIsSendFundVisible(false);
   }, [inactiveModal]);
 
   const handleCancelBuy = useCallback(() => {
     inactiveModal(BUY_TOKEN_MODAL);
-    setBuyTokensKey(`buyTokensKey-${Date.now()}`);
+    setIsBuyTokensVisible(false);
+  }, [inactiveModal]);
+
+  const handleCancelSell = useCallback(() => {
+    removeStorage(OFF_RAMP_DATA);
+    inactiveModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
+    setIsSendFundOffRampVisible(false);
   }, [inactiveModal]);
 
   const isSupportBuyTokens = useMemo(() => {
+    if (isSoloTonAccountProxy(currentAccountProxy)) {
+      return false;
+    }
+
     if (!locationPathname.includes('/home/tokens/detail/')) {
       return true;
     }
 
     return !!buyInfos.length;
-  }, [buyInfos.length, locationPathname]);
+  }, [buyInfos.length, currentAccountProxy, locationPathname]);
 
   const reloadBalance = useCallback(() => {
     setReloading(true);
@@ -197,30 +206,27 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       });
   }, []);
 
-  const actions: Action[] = useMemo(() =>
-    (
-      [
-        {
-          label: 'Receive',
-          type: 'receive',
-          icon: ArrowFatLinesDown,
-          onClick: onOpenReceive
-        },
-        {
-          label: 'Send',
-          type: 'send',
-          icon: PaperPlaneTilt,
-          onClick: onOpenSendFund
-        },
-        {
-          label: 'Buy',
-          type: 'buys',
-          icon: ShoppingCartSimple,
-          onClick: onOpenBuyTokens,
-          disabled: !isSupportBuyTokens || !(isAllAccount || isEthereumAddress(currentAccount?.address))
-        }
-      ]
-    ), [currentAccount?.address, isAllAccount, isSupportBuyTokens, onOpenBuyTokens, onOpenReceive, onOpenSendFund]);
+  const actions: Action[] = [
+    {
+      label: 'Get address',
+      type: 'receive',
+      icon: CopySimple,
+      onClick: onOpenReceive
+    },
+    {
+      label: 'Send',
+      type: 'send',
+      icon: PaperPlaneTilt,
+      onClick: onOpenSendFund
+    },
+    {
+      label: 'Buy',
+      type: 'buys',
+      icon: ShoppingCartSimple,
+      onClick: onOpenBuyTokens,
+      disabled: !isSupportBuyTokens || !(isAllAccount || currentAccountProxy?.chainTypes.includes(AccountChainType.ETHEREUM))
+    }
+  ];
 
   return (
     <div className={CN(className, 'flex-row')}>
@@ -398,52 +404,67 @@ function Component ({ className }: Props): React.ReactElement<Props> {
         </div>
       </div>
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={TRANSACTION_TRANSFER_MODAL}
-        onCancel={handleCancelTransfer}
-        title={t('Transfer')}
-      >
-        <Transaction
-          key={sendFundKey}
-          modalContent={isWebUI}
-        >
-          <SendFund
-            modalContent={isWebUI}
-            tokenGroupSlug={_tokenGroupSlug}
-          />
-        </Transaction>
-      </BaseModal>
+      {
+        isSendFundVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={TRANSACTION_TRANSFER_MODAL}
+            onCancel={handleCancelTransfer}
+            title={t('Transfer')}
+          >
+            <Transaction
+              modalContent={isWebUI}
+            >
+              <SendFund
+                modalContent={isWebUI}
+                tokenGroupSlug={_tokenGroupSlug}
+              />
+            </Transaction>
+          </BaseModal>
+        )
+      }
 
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={BUY_TOKEN_MODAL}
-        onCancel={handleCancelBuy}
-        title={t('Buy token')}
-      >
-        <BuyTokens
-          key={buyTokensKey}
-          modalContent={isWebUI}
-          slug={buyTokenSymbol}
-        />
-      </BaseModal>
+      {
+        isSendFundOffRampVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={OFF_RAMP_TRANSACTION_TRANSFER_MODAL}
+            onCancel={handleCancelSell}
+            title={t('Transfer')}
+          >
+            <Transaction
+              modalContent={isWebUI}
+            >
+              <SendFundOffRamp
+                modalContent={isWebUI}
+                tokenGroupSlug={_tokenGroupSlug}
+              />
+            </Transaction>
+          </BaseModal>
+        )
+      }
 
-      <AccountSelectorModal
-        items={accountSelectorItems}
-        onSelectItem={openSelectAccount}
-      />
+      {
+        isBuyTokensVisible && (
+          <BaseModal
+            className={'right-side-modal'}
+            destroyOnClose={true}
+            id={BUY_TOKEN_MODAL}
+            onCancel={handleCancelBuy}
+            title={t('Buy & sell tokens')}
+          >
+            <BuyTokens
+              modalContent={isWebUI}
+              slug={buyTokenSymbol}
+            />
+          </BaseModal>
+        )
+      }
 
-      <TokensSelectorModal
-        address={selectedAccount}
-        items={tokenSelectorItems}
-        onSelectItem={openSelectToken}
-      />
-
-      <ReceiveQrModal
-        address={selectedAccount}
-        selectedNetwork={selectedNetwork}
+      <ReceiveModal
+        {...receiveModalProps}
       />
     </div>
   );
@@ -481,7 +502,7 @@ const Balance = styled(Component)<Props>(({ theme: { token } }: Props) => ({
 
   '.__block-divider': {
     height: 116,
-    width: 2,
+    width: 1,
     backgroundColor: token.colorBgDivider,
     marginTop: token.marginSM
   },

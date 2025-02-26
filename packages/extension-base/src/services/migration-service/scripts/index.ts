@@ -5,8 +5,10 @@ import BaseMigrationJob from '../Base';
 import ClearMetadataDatabase from './databases/ClearMetadataDatabase';
 import MigrateAssetSetting from './databases/MigrateAssetSetting';
 import ReloadMetadata from './databases/ReloadMetadata';
+import MigratePairData from './keyring/MigratePairData';
+import MigrateRemoveGenesisHash from './keyring/MigrateRemoveGenesisHash';
 import EnableAvailTuringChain from './EnableAvailTuringChain';
-import MigrateRemoveGenesisHash from './MigrateRemoveGenesisHash';
+import MigrateTransactionHistoryBridge from './MigrateTransactionHistoryBridge';
 import MigrateTransactionHistoryBySymbol from './MigrateTransactionHistoryBySymbol';
 
 export const EVERYTIME = '__everytime__';
@@ -32,13 +34,17 @@ export default <Record<string, typeof BaseMigrationJob>>{
   // '1.1.24-01': MigrateProvidersV1M1P24,
   // '1.1.26-01': MigratePolygonUSDCProvider,
   // '1.1.28-01': MigrateEarningVersion,
-  // '1.1.41-01': DeleteChainStaking
-  // '1.1.41-02': MigrateAssetSetting
-  // [`${EVERYTIME}-1`]: AutoEnableChainsTokens
+  // '1.1.33-01': MigrateLedgerAccountV2,
+  // '1.1.41-01': DeleteChainStaking,
+  // '1.1.46-01': AutoEnableSomeTokens,
   '1.1.58-0___AVAIL': EnableAvailTuringChain,
+  '1.2.28-01': MigrateAssetSetting,
+  '1.2.28-02': MigrateTransactionHistoryBySymbol,
   '1.2.69-01': MigrateRemoveGenesisHash,
   '1.2.13-01': ReloadMetadata,
   '1.2.14-01': ClearMetadataDatabase,
-  '1.2.28-01': MigrateAssetSetting,
-  '1.2.28-02': MigrateTransactionHistoryBySymbol
+  '1.2.32-01': MigratePairData,
+  '1.3.6-01': MigrateTransactionHistoryBridge
+  // [`${EVERYTIME}-1.1.42-02`]: MigrateTransactionHistoryBySymbol
+  // [`${EVERYTIME}-1`]: AutoEnableChainsTokens
 };
