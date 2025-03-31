@@ -5,7 +5,7 @@ import { AccountChainType, AccountProxyType, BuyTokenInfo } from '@subwallet/ext
 import { balanceNoPrefixFormater, formatNumber } from '@subwallet/extension-base/utils';
 import { ReceiveModal } from '@subwallet/extension-web-ui/components';
 import { BaseModal } from '@subwallet/extension-web-ui/components/Modal/BaseModal';
-import { BUY_TOKEN_MODAL, DEFAULT_TRANSFER_PARAMS, OFF_RAMP_DATA, OFF_RAMP_TRANSACTION_TRANSFER_MODAL, TRANSACTION_TRANSFER_MODAL, TRANSFER_TRANSACTION } from '@subwallet/extension-web-ui/constants';
+import { BUY_TOKEN_MODAL, DEFAULT_TRANSFER_PARAMS, TRANSACTION_TRANSFER_MODAL, TRANSFER_TRANSACTION } from '@subwallet/extension-web-ui/constants';
 import { DataContext } from '@subwallet/extension-web-ui/contexts/DataContext';
 import { HomeContext } from '@subwallet/extension-web-ui/contexts/screen/HomeContext';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
@@ -15,10 +15,9 @@ import { reloadCron, saveShowBalance } from '@subwallet/extension-web-ui/messagi
 import BuyTokens from '@subwallet/extension-web-ui/Popup/BuyTokens';
 import Transaction from '@subwallet/extension-web-ui/Popup/Transaction/Transaction';
 import SendFund from '@subwallet/extension-web-ui/Popup/Transaction/variants/SendFund';
-import SendFundOffRamp from '@subwallet/extension-web-ui/Popup/Transaction/variants/SendFundOffRamp';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { PhosphorIcon, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { getTransactionFromAccountProxyValue, isSoloTonAccountProxy, removeStorage } from '@subwallet/extension-web-ui/utils';
+import { getTransactionFromAccountProxyValue, isSoloTonAccountProxy } from '@subwallet/extension-web-ui/utils';
 import { Button, Icon, ModalContext, Number, Tag, Tooltip, Typography } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { ArrowsClockwise, CopySimple, Eye, EyeSlash, PaperPlaneTilt, ShoppingCartSimple } from 'phosphor-react';
@@ -71,7 +70,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   const isAllAccount = useSelector((state) => state.accountState.isAllAccount);
   const { tokens } = useSelector((state) => state.buyService);
   const [isSendFundVisible, setIsSendFundVisible] = useState<boolean>(false);
-  const [isSendFundOffRampVisible, setIsSendFundOffRampVisible] = useState<boolean>(false);
+  // const [isSendFundOffRampVisible, setIsSendFundOffRampVisible] = useState<boolean>(false);
   const [isBuyTokensVisible, setIsBuyTokensVisible] = useState<boolean>(false);
   const [buyTokenSymbol, setBuyTokenSymbol] = useState<string>('');
   const notify = useNotification();
@@ -121,10 +120,6 @@ function Component ({ className }: Props): React.ReactElement<Props> {
     setIsBuyTokensVisible(true);
   }, [activeModal, buyInfos]);
 
-  useEffect(() => {
-    dataContext.awaitStores(['price', 'chainStore', 'assetRegistry', 'balance']).catch(console.error);
-  }, [dataContext]);
-
   const onOpenSendFund = useCallback(() => {
     if (!currentAccountProxy) {
       return;
@@ -152,22 +147,6 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   );
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const onOpen = searchParams.get('onOpen') || '';
-
-  useEffect(() => {
-    if (onOpen === 'true') {
-      setIsSendFundOffRampVisible(true);
-      activeModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
-      searchParams.delete('onOpen');
-      setSearchParams(searchParams);
-    }
-  }, [onOpen, activeModal, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
-
-    setBackground(backgroundColor);
-  }, [isTotalBalanceDecrease, setBackground]);
 
   const handleCancelTransfer = useCallback(() => {
     inactiveModal(TRANSACTION_TRANSFER_MODAL);
@@ -177,12 +156,6 @@ function Component ({ className }: Props): React.ReactElement<Props> {
   const handleCancelBuy = useCallback(() => {
     inactiveModal(BUY_TOKEN_MODAL);
     setIsBuyTokensVisible(false);
-  }, [inactiveModal]);
-
-  const handleCancelSell = useCallback(() => {
-    removeStorage(OFF_RAMP_DATA);
-    inactiveModal(OFF_RAMP_TRANSACTION_TRANSFER_MODAL);
-    setIsSendFundOffRampVisible(false);
   }, [inactiveModal]);
 
   const isSupportBuyTokens = useMemo(() => {
@@ -208,7 +181,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
 
   const actions: Action[] = [
     {
-      label: 'Get address',
+      label: 'Receive',
       type: 'receive',
       icon: CopySimple,
       onClick: onOpenReceive
@@ -227,6 +200,27 @@ function Component ({ className }: Props): React.ReactElement<Props> {
       disabled: !isSupportBuyTokens || !(isAllAccount || currentAccountProxy?.chainTypes.includes(AccountChainType.ETHEREUM))
     }
   ];
+
+  useEffect(() => {
+    dataContext.awaitStores(['price', 'chainStore', 'assetRegistry', 'balance']).catch(console.error);
+  }, [dataContext]);
+
+  const openSendFund = searchParams.get('openSendFund') || '';
+
+  useEffect(() => {
+    if (openSendFund === 'true') {
+      setIsSendFundVisible(true);
+      activeModal(TRANSACTION_TRANSFER_MODAL);
+      searchParams.delete('openSendFund');
+      setSearchParams(searchParams);
+    }
+  }, [openSendFund, activeModal, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const backgroundColor = isTotalBalanceDecrease ? BackgroundColorMap.DECREASE : BackgroundColorMap.INCREASE;
+
+    setBackground(backgroundColor);
+  }, [isTotalBalanceDecrease, setBackground]);
 
   return (
     <div className={CN(className, 'flex-row')}>
@@ -415,29 +409,9 @@ function Component ({ className }: Props): React.ReactElement<Props> {
           >
             <Transaction
               modalContent={isWebUI}
+              modalId={TRANSACTION_TRANSFER_MODAL}
             >
               <SendFund
-                modalContent={isWebUI}
-                tokenGroupSlug={_tokenGroupSlug}
-              />
-            </Transaction>
-          </BaseModal>
-        )
-      }
-
-      {
-        isSendFundOffRampVisible && (
-          <BaseModal
-            className={'right-side-modal'}
-            destroyOnClose={true}
-            id={OFF_RAMP_TRANSACTION_TRANSFER_MODAL}
-            onCancel={handleCancelSell}
-            title={t('Transfer')}
-          >
-            <Transaction
-              modalContent={isWebUI}
-            >
-              <SendFundOffRamp
                 modalContent={isWebUI}
                 tokenGroupSlug={_tokenGroupSlug}
               />

@@ -36,6 +36,7 @@ import styled, { useTheme } from 'styled-components';
 
 type Props = {
   isInModal?: boolean;
+  modalProps?: WrapperProps['modalProps'];
   refreshNotifications: VoidFunction;
   refreshNotificationsTriggerKey: string;
   notificationItemActionsModal: {
@@ -80,7 +81,7 @@ export const NotificationIconMap = {
 };
 
 function Component ({ isInModal,
-  notificationItemActionsModal, openNotificationSettingModal,
+  modalProps, notificationItemActionsModal, openNotificationSettingModal,
   refreshNotifications, refreshNotificationsTriggerKey }: Props): React.ReactElement<Props> {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -318,7 +319,14 @@ function Component ({ isInModal,
             });
             switchReadNotificationStatus(switchStatusParams).then(() => {
               if (isInModal) {
-                withdrawModal.open();
+                withdrawModal.open({
+                  onBack: withdrawModal.close,
+                  onCancel: () => {
+                    withdrawModal.close();
+                    modalProps?.onCancel();
+                  },
+                  onDoneCallback: modalProps?.onCancel
+                });
               } else {
                 navigate('/transaction/withdraw');
               }
@@ -344,7 +352,14 @@ function Component ({ isInModal,
             });
             switchReadNotificationStatus(switchStatusParams).then(() => {
               if (isInModal) {
-                claimRewardModal.open();
+                claimRewardModal.open({
+                  onBack: claimRewardModal.close,
+                  onCancel: () => {
+                    claimRewardModal.close();
+                    modalProps?.onCancel();
+                  },
+                  onDoneCallback: modalProps?.onCancel
+                });
               } else {
                 navigate('/transaction/claim-reward');
               }
@@ -388,7 +403,14 @@ function Component ({ isInModal,
                 await switchReadNotificationStatus(switchStatusParams);
 
                 if (isInModal) {
-                  claimBridgeModal.open();
+                  claimBridgeModal.open({
+                    onBack: claimBridgeModal.close,
+                    onCancel: () => {
+                      claimBridgeModal.close();
+                      modalProps?.onCancel();
+                    },
+                    onDoneCallback: modalProps?.onCancel
+                  });
                 } else {
                   navigate('/transaction/claim-bridge');
                 }
@@ -422,7 +444,14 @@ function Component ({ isInModal,
             });
             switchReadNotificationStatus(switchStatusParams).then(() => {
               if (isInModal) {
-                claimBridgeModal.open();
+                claimBridgeModal.open({
+                  onBack: claimBridgeModal.close,
+                  onCancel: () => {
+                    claimBridgeModal.close();
+                    modalProps?.onCancel();
+                  },
+                  onDoneCallback: modalProps?.onCancel
+                });
               } else {
                 navigate('/transaction/claim-bridge');
               }
@@ -443,7 +472,7 @@ function Component ({ isInModal,
           });
       }
     };
-  }, [poolInfoMap, yieldPositions, currentAccountProxy, isAllAccount, chainsByAccountType, currentTimestampMs, chainStateMap, showActiveChainModal, setWithdrawStorage, isInModal, withdrawModal, navigate, showWarningModal, earningRewards, accounts, setClaimRewardStorage, claimRewardModal, setClaimAvailBridgeStorage, claimBridgeModal, refreshNotifications]);
+  }, [poolInfoMap, yieldPositions, currentAccountProxy, isAllAccount, chainsByAccountType, currentTimestampMs, chainStateMap, showActiveChainModal, setWithdrawStorage, isInModal, withdrawModal, modalProps, navigate, showWarningModal, earningRewards, accounts, setClaimRewardStorage, claimRewardModal, setClaimAvailBridgeStorage, claimBridgeModal, refreshNotifications]);
 
   const onClickMore = useCallback((item: NotificationInfoItem) => {
     return (e: SyntheticEvent) => {
@@ -484,6 +513,7 @@ function Component ({ isInModal,
   const renderEmptyList = useCallback(() => {
     return (
       <EmptyList
+        className={'notification-empty-list'}
         emptyMessage={t('Your notifications will appear here')}
         emptyTitle={t('No notifications yet')}
         phosphorIcon={ListBullets}
@@ -497,6 +527,7 @@ function Component ({ isInModal,
         buttonProps={{
           icon: (
             <Icon
+              customSize={'20px'}
               phosphorIcon={BellSimpleRinging}
               weight={'fill'}
             />),
@@ -506,6 +537,7 @@ function Component ({ isInModal,
           shape: 'circle',
           children: t('Enable notifications')
         }}
+        className={'notification-empty-with-button'}
         emptyMessage={t('Enable notifications now to not miss anything!')}
         emptyTitle={t('Notifications are disabled')}
         phosphorIcon={BellSimpleSlash}
@@ -704,6 +736,7 @@ const Wrapper = (props: WrapperProps) => {
     >
       <Component
         isInModal={isModal}
+        modalProps={modalProps}
         notificationItemActionsModal={notificationItemActionsModalHandler}
         openNotificationSettingModal={openNotificationSettingModal}
         refreshNotifications={refreshNotifications}
@@ -783,6 +816,26 @@ const Notification = styled(Wrapper)<WrapperProps>(({ theme: { token } }: Wrappe
 
       '.__filter-tab-mark-read-button': {
         paddingRight: 0
+      }
+    },
+
+    '.notification-empty-with-button': {
+      '.empty-list-inner': {
+        gap: 0
+      },
+      '.empty_icon_wrapper': {
+        paddingBottom: 26
+      },
+      '.empty_text_container': {
+        paddingBottom: 24
+      }
+    },
+
+    '.notification-empty-list': {
+      marginTop: 4,
+      flexDirection: 'row',
+      '.empty-list-inner': {
+        gap: 26
       }
     },
 
