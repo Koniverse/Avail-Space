@@ -5,8 +5,9 @@ import { AssetLogoMap, ChainLogoMap } from '@subwallet/chain-list';
 import { _ChainAsset, _ChainInfo } from '@subwallet/chain-list/types';
 import { LATEST_CHAIN_PATCH_FETCHING_INTERVAL, md5HashChainAsset, md5HashChainInfo } from '@subwallet/extension-base/services/chain-online-service/constants';
 import { ChainService, filterAssetInfoMap } from '@subwallet/extension-base/services/chain-service';
-import { _ChainApiStatus, _ChainConnectionStatus, _ChainState } from '@subwallet/extension-base/services/chain-service/types';
-import { fetchPatchData, PatchInfo, randomizeProvider } from '@subwallet/extension-base/services/chain-service/utils';
+import { _AVAIL_APP_CHAINS_WHITELIST } from '@subwallet/extension-base/services/chain-service/constants';
+import { _ChainApiStatus, _ChainState } from '@subwallet/extension-base/services/chain-service/types';
+import { fetchPatchData, PatchInfo } from '@subwallet/extension-base/services/chain-service/utils';
 import { EventService } from '@subwallet/extension-base/services/event-service';
 import SettingService from '@subwallet/extension-base/services/setting-service/SettingService';
 import { IChain } from '@subwallet/extension-base/services/storage-service/databases';
@@ -104,6 +105,7 @@ export class ChainOnlineService {
       let assetRegistry: Record<string, _ChainAsset> = structuredClone(this.chainService.getAssetRegistry());
       const currentChainStateMap: Record<string, _ChainState> = structuredClone(this.chainService.getChainStateMap());
       const currentChainStatusMap: Record<string, _ChainApiStatus> = structuredClone(this.chainService.getChainStatusMap());
+      // eslint-disable-next-line
       let addedChain: string[] = [];
 
       if (isSafePatch && (!this.firstApplied || currentPatchVersion !== latestPatchVersion)) {
@@ -111,26 +113,41 @@ export class ChainOnlineService {
 
         // 2. merge data map
         if (latestChainInfo && Object.keys(latestChainInfo).length > 0) {
-          chainInfoMap = this.mergeChainList(oldChainInfoMap, latestChainInfo);
+          // Only update chains that are in the whitelist
+          const _latestChainInfo = (() => {
+            const result: Record<string, _ChainInfo> = {};
 
-          const [currentChainStateKey, newChainKey] = [Object.keys(currentChainStateMap), Object.keys(chainInfoMap)];
+            _AVAIL_APP_CHAINS_WHITELIST.forEach((chainSlug: string) => {
+              if (!latestChainInfo[chainSlug]) {
+                return;
+              }
 
-          addedChain = newChainKey.filter((chain) => !currentChainStateKey.includes(chain));
+              result[chainSlug] = latestChainInfo[chainSlug];
+            });
 
-          addedChain.forEach((key) => {
-            currentChainStateMap[key] = {
-              active: false,
-              currentProvider: randomizeProvider(chainInfoMap[key].providers).providerKey,
-              manualTurnOff: false,
-              slug: key
-            };
+            return result;
+          })();
 
-            currentChainStatusMap[key] = {
-              slug: key,
-              connectionStatus: _ChainConnectionStatus.DISCONNECTED,
-              lastUpdated: Date.now()
-            };
-          });
+          chainInfoMap = this.mergeChainList(oldChainInfoMap, _latestChainInfo);
+
+          // const [currentChainStateKey, newChainKey] = [Object.keys(currentChainStateMap), Object.keys(chainInfoMap)];
+
+          // addedChain = newChainKey.filter((chain) => !currentChainStateKey.includes(chain));
+          //
+          // addedChain.forEach((key) => {
+          //   currentChainStateMap[key] = {
+          //     active: false,
+          //     currentProvider: randomizeProvider(chainInfoMap[key].providers).providerKey,
+          //     manualTurnOff: false,
+          //     slug: key
+          //   };
+          //
+          //   currentChainStatusMap[key] = {
+          //     slug: key,
+          //     connectionStatus: _ChainConnectionStatus.DISCONNECTED,
+          //     lastUpdated: Date.now()
+          //   };
+          // });
         }
 
         if (latestAssetInfo && Object.keys(latestAssetInfo).length > 0) {

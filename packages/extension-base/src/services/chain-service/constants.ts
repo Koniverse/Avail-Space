@@ -8,6 +8,26 @@ export const API_AUTO_CONNECT_MS = 3000;
 export const API_CONNECT_TIMEOUT = 30000;
 export const API_MAX_RETRY = 2;
 
+export const _AVAIL_APP_CHAINS_WHITELIST: string[] = [
+  'avail_mainnet',
+  'availTuringTest',
+  'goldberg_testnet',
+  'ethereum',
+  'binance',
+  'polygon',
+  'arbitrum_one',
+  'optimism',
+  'avalanche_c',
+  'base_mainnet',
+  'fantom',
+  'tomochain',
+  'manta_network_evm',
+  'ethereum_goerli',
+  'binance_test',
+  'fantom_testnet',
+  'okxTest'
+];
+
 export const _API_OPTIONS_CHAIN_GROUP = {
   acala: ['acala', 'karura', 'origintrail', 'kintsugi'],
   turing: ['turingStaging', 'turing'],

@@ -4,7 +4,7 @@
 import { AssetLogoMap, AssetRefMap, ChainAssetMap, ChainInfoMap, ChainLogoMap, MultiChainAssetMap } from '@subwallet/chain-list';
 import { _AssetRef, _AssetRefPath, _AssetType, _ChainAsset, _ChainInfo, _ChainStatus, _EvmInfo, _MultiChainAsset, _SubstrateChainType, _SubstrateInfo, _TonInfo } from '@subwallet/chain-list/types';
 import { AssetSetting, MetadataItem, TokenPriorityDetails, ValidateNetworkResponse } from '@subwallet/extension-base/background/KoniTypes';
-import { _DEFAULT_ACTIVE_CHAINS, _ZK_ASSET_PREFIX, LATEST_CHAIN_DATA_FETCHING_INTERVAL } from '@subwallet/extension-base/services/chain-service/constants';
+import { _AVAIL_APP_CHAINS_WHITELIST, _DEFAULT_ACTIVE_CHAINS, _ZK_ASSET_PREFIX, LATEST_CHAIN_DATA_FETCHING_INTERVAL } from '@subwallet/extension-base/services/chain-service/constants';
 import { EvmChainHandler } from '@subwallet/extension-base/services/chain-service/handler/EvmChainHandler';
 import { MantaPrivateHandler } from '@subwallet/extension-base/services/chain-service/handler/manta/MantaPrivateHandler';
 import { SubstrateChainHandler } from '@subwallet/extension-base/services/chain-service/handler/SubstrateChainHandler';
@@ -25,27 +25,7 @@ import { HexString, Logger } from '@polkadot/util/types';
 import { ExtraInfo } from '@polkadot-api/merkleize-metadata';
 
 const availChainInfoMap = (() => {
-  const enableList = [
-    'avail_mainnet',
-    'availTuringTest',
-    'goldberg_testnet',
-    'ethereum',
-    'binance',
-    'polygon',
-    'arbitrum_one',
-    'optimism',
-    'avalanche_c',
-    'base_mainnet',
-    'fantom',
-    'tomochain',
-    'manta_network_evm',
-    'ethereum_goerli',
-    'binance_test',
-    'fantom_testnet',
-    'okxTest'
-  ];
-
-  return Object.fromEntries(enableList.map((slug) => {
+  return Object.fromEntries(_AVAIL_APP_CHAINS_WHITELIST.map((slug) => {
     return [slug, ChainInfoMap[slug]];
   }));
 })();
@@ -198,11 +178,12 @@ export class ChainService {
   get swapRefMap () {
     const result: Record<string, _AssetRef> = {};
 
-    Object.entries(this.dataMap.assetRefMap).forEach(([key, assetRef]) => {
-      if (assetRef.path === _AssetRefPath.SWAP) {
-        result[key] = assetRef;
-      }
-    });
+    // todo: update this logic after integrating swap feature
+    // Object.entries(this.dataMap.assetRefMap).forEach(([key, assetRef]) => {
+    //   if (assetRef.path === _AssetRefPath.SWAP) {
+    //     result[key] = assetRef;
+    //   }
+    // });
 
     return result;
   }
