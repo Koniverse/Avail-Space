@@ -1,6 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-web-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { ChainInfoMap as libChainInfoMap } from '@subwallet/chain-list';
 import { _ChainInfo, _FundStatus } from '@subwallet/chain-list/types';
 import { CrowdloanContributionItem } from '@subwallet/extension-base/services/subscan-service/types';
 import { reformatAddress } from '@subwallet/extension-base/utils';
@@ -217,7 +218,7 @@ const Component: React.FC<Props> = ({ className = '' }: Props) => {
         return i.fundId !== ACALA_FUND_ID;
       });
 
-      const acalaValueInfo = getAcalaTableItem(acalaValue, crowdloanFundInfoMap[ACALA_FUND_ID], chainInfoMap.acala, priceMap);
+      const acalaValueInfo = getAcalaTableItem(acalaValue, crowdloanFundInfoMap[ACALA_FUND_ID], { ...libChainInfoMap, ...chainInfoMap }.acala, priceMap);
 
       !!acalaValueInfo && results.push(acalaValueInfo);
     }

@@ -1,6 +1,7 @@
 // Copyright 2019-2022 @subwallet/extension-web-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+import { ChainInfoMap as libChainInfoMap } from '@subwallet/chain-list';
 import { SigningRequest } from '@subwallet/extension-base/background/types';
 import { AccountItemWithProxyAvatar, ConfirmationGeneralInfo, ViewDetailIcon } from '@subwallet/extension-web-ui/components';
 import { useGetAccountByAddress, useMetadata, useOpenDetailModal, useParseSubstrateRequestPayload } from '@subwallet/extension-web-ui/hooks';
@@ -36,7 +37,7 @@ function Component ({ className, request }: Props) {
     const _payload = request.request.payload;
 
     return isRawPayload(_payload)
-      ? (account?.genesisHash || chainInfoMap.polkadot.substrateInfo?.genesisHash || '')
+      ? (account?.genesisHash || { ...libChainInfoMap, ...chainInfoMap }.polkadot.substrateInfo?.genesisHash || '')
       : _payload.genesisHash;
   }, [account, chainInfoMap, request]);
 

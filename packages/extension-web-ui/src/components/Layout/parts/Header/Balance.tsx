@@ -427,7 +427,7 @@ function Component ({ className }: Props): React.ReactElement<Props> {
             destroyOnClose={true}
             id={BUY_TOKEN_MODAL}
             onCancel={handleCancelBuy}
-            title={t('Buy & sell tokens')}
+            title={t('Buy token')}
           >
             <BuyTokens
               modalContent={isWebUI}
