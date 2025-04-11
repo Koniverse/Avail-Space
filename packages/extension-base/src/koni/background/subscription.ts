@@ -65,10 +65,10 @@ export class KoniSubscription {
 
   async start () {
     await Promise.all([this.state.eventService.waitCryptoReady, this.state.eventService.waitKeyringReady, this.state.eventService.waitAssetReady]);
-    // const currentAddress = this.state.keyringService.currentAccount?.address;
-
+    // const currentAddress = this.state.keyringService.context.currentAccount?.proxyId;
+    //
     // if (currentAddress) {
-    //   // this.subscribeCrowdloans(currentAddress, this.state.getSubstrateApiMap());
+    //   this.subscribeCrowdloans(currentAddress, this.state.getSubstrateApiMap());
     // }
     //
     // this.eventHandler = (events, eventTypes) => {
@@ -79,11 +79,13 @@ export class KoniSubscription {
     //     return;
     //   }
     //
-    //   const address = serviceInfo.currentAccountInfo?.address;
+    //   const address = serviceInfo.currentAccountInfo?.proxyId;
     //
     //   if (!address) {
     //     return;
     //   }
+    //
+    //   this.subscribeCrowdloans(address, serviceInfo.chainApiMap.substrate);
     // };
     //
     // this.state.eventService.onLazy(this.eventHandler.bind(this));
@@ -101,7 +103,7 @@ export class KoniSubscription {
   }
 
   subscribeCrowdloans (address: string, substrateApiMap: Record<string, _SubstrateApi>, onlyRunOnFirstTime?: boolean) {
-    const addresses = this.state.getDecodedAddresses(address);
+    const addresses = this.state.keyringService.context.getDecodedAddresses(address);
 
     if (!addresses.length) {
       return;
@@ -129,7 +131,7 @@ export class KoniSubscription {
   }
 
   subscribeNft (address: string, substrateApiMap: Record<string, _SubstrateApi>, evmApiMap: Record<string, _EvmApi>, smartContractNfts: _ChainAsset[], chainInfoMap: Record<string, _ChainInfo>) {
-    const addresses = this.state.getDecodedAddresses(address);
+    const addresses = this.state.keyringService.context.getDecodedAddresses(address);
 
     if (!addresses.length) {
       return;
@@ -152,7 +154,7 @@ export class KoniSubscription {
   }
 
   async reloadCrowdloan () {
-    // const currentAddress = this.state.keyringService.currentAccount?.address;
+    // const currentAddress = this.state.keyringService.context.currentAccount?.proxyId;
     //
     // this.subscribeCrowdloans(currentAddress, this.state.getSubstrateApiMap());
     //

@@ -7,6 +7,7 @@ import React, { Dispatch, SetStateAction } from 'react';
 
 export interface TransactionContextProps {
   modalId?: string;
+  isInModal?: boolean;
   defaultData: TransactionFormBaseProps;
   persistData: Dispatch<SetStateAction<TransactionFormBaseProps>>;
   needPersistData: boolean;
@@ -25,7 +26,7 @@ export interface TransactionContextProps {
 }
 
 export const TransactionContext = React.createContext<TransactionContextProps>({
-  defaultData: { from: '', chain: '', asset: '' },
+  defaultData: { from: '', fromAccountProxy: '', chain: '', asset: '' },
   needPersistData: false,
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   persistData: (value) => {},

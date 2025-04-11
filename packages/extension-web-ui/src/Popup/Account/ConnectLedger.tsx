@@ -4,11 +4,13 @@
 import { LedgerNetwork, MigrationLedgerNetwork } from '@subwallet/extension-base/background/KoniTypes';
 import { reformatAddress } from '@subwallet/extension-base/utils';
 import { AccountItemWithName, AccountWithNameSkeleton, BasicOnChangeFunction, ChainSelector, DualLogo, InfoIcon, Layout, PageWrapper } from '@subwallet/extension-web-ui/components';
+import { LedgerChainSelector, LedgerItemType } from '@subwallet/extension-web-ui/components/Field/LedgerChainSelector';
 import { ATTACH_ACCOUNT_MODAL, SUBSTRATE_MIGRATION_KEY, USER_GUIDE_URL } from '@subwallet/extension-web-ui/constants';
 import { useAutoNavigateToCreatePassword, useCompleteCreateAccount, useGetSupportedLedger, useGoBackFromCreateAccount, useLedger } from '@subwallet/extension-web-ui/hooks';
 import { createAccountHardwareMultiple } from '@subwallet/extension-web-ui/messaging';
 import { RootState } from '@subwallet/extension-web-ui/stores';
 import { ChainItemType, ThemeProps } from '@subwallet/extension-web-ui/types';
+import { convertNetworkSlug } from '@subwallet/extension-web-ui/utils';
 import { BackgroundIcon, Button, Icon, Image, SwList } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { CheckCircle, CircleNotch, Swatches } from 'phosphor-react';
@@ -63,11 +65,14 @@ const Component: React.FC<Props> = (props: Props) => {
 
   const { accounts } = useSelector((state: RootState) => state.accountState);
 
-  const networks = useMemo((): ChainItemType[] => supportedLedger
+  const networks = useMemo((): LedgerItemType[] => supportedLedger
     .filter(({ isHide }) => !isHide)
     .map((network) => ({
-      name: !network.isGeneric ? network.networkName.replace(' network', '') : network.networkName,
-      slug: network.slug
+      name: !network.isGeneric
+        ? network.networkName.replace(' network', '').concat(network.isRecovery ? ' Recovery' : '')
+        : network.networkName,
+      chain: network.slug,
+      slug: convertNetworkSlug(network)
     })).filter((n) => !!chainInfoMap[n.slug]), [chainInfoMap, supportedLedger]);
 
   const networkMigrates = useMemo((): ChainItemType[] => migrateSupportLedger
@@ -87,7 +92,7 @@ const Component: React.FC<Props> = (props: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedChain = useMemo((): LedgerNetwork | undefined => {
-    return supportedLedger.find((n) => n.slug === chain);
+    return supportedLedger.find((n) => convertNetworkSlug(n) === chain);
   }, [chain, supportedLedger]);
 
   const selectedChainMigrateMode = useMemo((): MigrationLedgerNetwork | undefined => {
@@ -102,7 +107,7 @@ const Component: React.FC<Props> = (props: Props) => {
     return chainMigrateMode && selectedChain ? `${selectedChain.accountName}` : '';
   }, [chainMigrateMode, migrateSupportLedger]);
 
-  const { error, getAllAddress, isLoading, isLocked, ledger, refresh, warning } = useLedger(chain, true, false, false, selectedChainMigrateMode?.genesisHash);
+  const { error, getAllAddress, isLoading, isLocked, ledger, refresh, warning } = useLedger(selectedChain?.slug, true, false, false, selectedChainMigrateMode?.genesisHash, selectedChain?.isRecovery);
 
   const onPreviousStep = useCallback(() => {
     setFirstStep(true);
@@ -152,7 +157,7 @@ const Component: React.FC<Props> = (props: Props) => {
         (await getAllAddress(start, end)).forEach(({ address }, index) => {
           rs[start + index] = {
             accountIndex: start + index,
-            name: `Ledger ${accountMigrateNetworkName} ${accountMigrateNetworkName ? `(${accountName})` : accountName} ${start + index + 1}`,
+            name: `Ledger ${accountMigrateNetworkName} ${accountMigrateNetworkName ? `(${accountName})` : accountName} ${start + index + 1} - ${address.slice(-4)}`,
             address: address
           };
         });
@@ -221,20 +226,18 @@ const Component: React.FC<Props> = (props: Props) => {
 
       const selected = !!selectedAccounts.find((it) => it.address === item.address);
       const originAddress = reformatAddress(item.address, 42);
-
-      const existedAccount = accounts.find((acc) => acc.address === originAddress && acc.genesisHash === selectedChain?.genesisHash);
-      const disabled = !!existedAccount;
+      const existedAccount = accounts.some((acc) => acc.address === originAddress);
 
       return (
         <AccountItemWithName
           accountName={item.name}
           address={item.address}
-          className={CN({ disabled: disabled })}
+          className={CN({ disabled: existedAccount })}
           direction='vertical'
           genesisHash={selectedChain?.genesisHash}
-          isSelected={selected || disabled}
+          isSelected={selected || existedAccount}
           key={key}
-          onClick={disabled ? undefined : onClickItem(selectedAccounts, item)}
+          onClick={existedAccount ? undefined : onClickItem(selectedAccounts, item)}
           showUnselectIcon={true}
         />
       );
@@ -259,7 +262,8 @@ const Component: React.FC<Props> = (props: Props) => {
           hardwareType: 'ledger',
           name: item.name,
           isEthereum: selectedChain.isEthereum,
-          isGeneric: selectedChain.isGeneric
+          isGeneric: selectedChain.isGeneric,
+          isLedgerRecovery: selectedChain?.isRecovery
         }))
       })
         .then(() => {
@@ -335,7 +339,7 @@ const Component: React.FC<Props> = (props: Props) => {
                     )}
                   />
                 </div>
-                <ChainSelector
+                <LedgerChainSelector
                   className={'select-ledger-app'}
                   items={networks}
                   label={t('Select Ledger app')}

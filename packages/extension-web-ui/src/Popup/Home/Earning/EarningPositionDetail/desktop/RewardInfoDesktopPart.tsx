@@ -5,15 +5,14 @@ import { _ChainAsset } from '@subwallet/chain-list/types';
 import { NotificationType } from '@subwallet/extension-base/background/KoniTypes';
 import { _STAKING_CHAIN_GROUP } from '@subwallet/extension-base/services/earning-service/constants';
 import { EarningRewardHistoryItem, YieldPoolType, YieldPositionInfo } from '@subwallet/extension-base/types';
-import { BaseModal } from '@subwallet/extension-web-ui/components';
+import { isSameAddress } from '@subwallet/extension-base/utils';
 import { EarningRewardsHistoryModal } from '@subwallet/extension-web-ui/components/Modal/Earning/EarningRewardsHistoryModal';
-import { BN_ZERO, CLAIM_REWARD_TRANSACTION, DEFAULT_CLAIM_REWARD_PARAMS, TRANSACTION_YIELD_CLAIM_MODAL } from '@subwallet/extension-web-ui/constants';
+import { BN_ZERO, CLAIM_REWARD_TRANSACTION, DEFAULT_CLAIM_REWARD_PARAMS } from '@subwallet/extension-web-ui/constants';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
+import { TransactionModalContext } from '@subwallet/extension-web-ui/contexts/TransactionModalContextProvider';
 import { useSelector, useTranslation, useYieldRewardTotal } from '@subwallet/extension-web-ui/hooks';
-import Transaction from '@subwallet/extension-web-ui/Popup/Transaction/Transaction';
-import ClaimReward from '@subwallet/extension-web-ui/Popup/Transaction/variants/ClaimReward';
 import { AlertDialogProps, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { openInNewTab } from '@subwallet/extension-web-ui/utils';
+import { getReformatedAddressRelatedToChain, openInNewTab } from '@subwallet/extension-web-ui/utils';
 import { ActivityIndicator, Button, Icon, ModalContext, Number } from '@subwallet/react-ui';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
@@ -40,10 +39,11 @@ function Component ({ className, closeAlert, compound,
   transactionFromValue }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { activeModal, inactiveModal } = useContext(ModalContext);
+  const { activeModal } = useContext(ModalContext);
   const { isWebUI } = useContext(ScreenContext);
+  const { claimRewardModal } = useContext(TransactionModalContext);
 
-  const { currentAccount } = useSelector((state) => state.accountState);
+  const { currentAccountProxy } = useSelector((state) => state.accountState);
   const chainInfoMap = useSelector((state) => state.chainStore.chainInfoMap);
 
   const { slug, type } = compound;
@@ -91,7 +91,7 @@ function Component ({ className, closeAlert, compound,
 
       // todo: open Modal
       if (isWebUI) {
-        activeModal(TRANSACTION_YIELD_CLAIM_MODAL);
+        claimRewardModal.open();
       } else {
         navigate('/transaction/claim-reward');
       }
@@ -107,20 +107,30 @@ function Component ({ className, closeAlert, compound,
         }
       });
     }
-  }, [type, isDAppStaking, total, setClaimRewardStorage, slug, transactionChainValue, transactionFromValue, isWebUI, activeModal, navigate, openAlert, t, closeAlert]);
-  const handleCloseClaim = useCallback(() => {
-    inactiveModal(TRANSACTION_YIELD_CLAIM_MODAL);
-  }, [inactiveModal]);
+  }, [type, isDAppStaking, total, setClaimRewardStorage, slug, transactionChainValue, transactionFromValue, isWebUI, claimRewardModal, navigate, openAlert, t, closeAlert]);
 
   const onOpenRewardsHistoryModal = useCallback(() => {
     activeModal(rewardsHistoryModalId);
   }, [activeModal]);
 
-  const subscanSlug = useMemo(() => {
-    return chainInfoMap[compound.chain]?.extraInfo?.subscanSlug || undefined;
-  }, [chainInfoMap, compound.chain]);
-
   const canShowRewardInfo = type === YieldPoolType.NOMINATION_POOL || (type === YieldPoolType.NATIVE_STAKING && isDAppStaking);
+
+  const onClickViewExplore = useCallback(() => {
+    if (currentAccountProxy && currentAccountProxy.accounts.length > 0) {
+      const subscanSlug = chainInfoMap[compound.chain]?.extraInfo?.subscanSlug;
+      const accountJson = currentAccountProxy.accounts.find((account) => isSameAddress(account.address, compound.address));
+
+      if (!subscanSlug || !accountJson) {
+        return;
+      }
+
+      const formatAddress = getReformatedAddressRelatedToChain(accountJson, chainInfoMap[compound.chain]);
+
+      if (formatAddress) {
+        openInNewTab(`https://${subscanSlug}.subscan.io/account/${formatAddress}?tab=reward`)();
+      }
+    }
+  }, [chainInfoMap, compound.address, compound.chain, currentAccountProxy]);
 
   return (
     <>
@@ -187,26 +197,11 @@ function Component ({ className, closeAlert, compound,
         >{t('Reward history')}</Button>
       </div>
       <EarningRewardsHistoryModal
-        address={currentAccount?.address}
         inputAsset={inputAsset}
         modalId={rewardsHistoryModalId}
+        onClickViewExplore={onClickViewExplore}
         rewardHistories={rewardHistories}
-        subscanSlug={subscanSlug}
       />
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={TRANSACTION_YIELD_CLAIM_MODAL}
-        onCancel={handleCloseClaim}
-        title={t('Claim rewards')}
-      >
-        <Transaction
-          modalContent={isWebUI}
-          modalId={TRANSACTION_YIELD_CLAIM_MODAL}
-        >
-          <ClaimReward />
-        </Transaction>
-      </BaseModal>
     </>
   );
 }

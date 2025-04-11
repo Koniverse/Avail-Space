@@ -10,23 +10,25 @@ import { DEFAULT_ROUTER_PATH } from '@subwallet/extension-web-ui/constants/route
 import { DataContext } from '@subwallet/extension-web-ui/contexts/DataContext';
 import { InjectContext } from '@subwallet/extension-web-ui/contexts/InjectContext';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
-import { WalletModalContext } from '@subwallet/extension-web-ui/contexts/WalletModalContext';
+import { TransactionModalContextProvider } from '@subwallet/extension-web-ui/contexts/TransactionModalContextProvider';
+import { WalletModalContextProvider } from '@subwallet/extension-web-ui/contexts/WalletModalContextProvider';
 import { useSubscribeLanguage } from '@subwallet/extension-web-ui/hooks';
 import useNotification from '@subwallet/extension-web-ui/hooks/common/useNotification';
 import useUILock from '@subwallet/extension-web-ui/hooks/common/useUILock';
 import { subscribeNotifications } from '@subwallet/extension-web-ui/messaging';
 import { RootState } from '@subwallet/extension-web-ui/stores';
-import { ThemeProps } from '@subwallet/extension-web-ui/types';
+import { OffRampParams, ThemeProps } from '@subwallet/extension-web-ui/types';
 import { removeStorage } from '@subwallet/extension-web-ui/utils';
 import { changeHeaderLogo, ModalContext } from '@subwallet/react-ui';
 import { NotificationProps } from '@subwallet/react-ui/es/notification/NotificationProvider';
 import CN from 'classnames';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useLocalStorage } from 'usehooks-ts';
 
-import { CONFIRMATION_MODAL, TRANSACTION_STORAGES } from '../constants';
+import { CONFIRMATION_MODAL, DEFAULT_OFF_RAMP_PARAMS, OFF_RAMP_DATA, TRANSACTION_STORAGES } from '../constants';
 import { WebUIContextProvider } from '../contexts/WebUIContext';
 
 changeHeaderLogo(<Logo2D />);
@@ -55,9 +57,12 @@ const crowdloanResultUrl = '/crowdloan-unlock-campaign/contributions-result';
 const baseAccountPath = '/accounts';
 const allowImportAccountPaths = ['new-seed-phrase', 'import-seed-phrase', 'import-private-key', 'restore-json', 'import-by-qr', 'attach-read-only', 'connect-polkadot-vault', 'connect-keystone', 'connect-ledger'];
 
+// Off-ramp
+const offRampLoading = '/off-ramp-loading';
+
 const allowImportAccountUrls = allowImportAccountPaths.map((path) => `${baseAccountPath}/${path}`);
 const allowPreventWelcomeUrls = [...allowImportAccountUrls, welcomeUrl, createPasswordUrl, securityUrl,
-  earningOptionsPreviewUrl, earningPoolsPreviewUrl, checkCrowdloanUrl, crowdloanResultUrl];
+  earningOptionsPreviewUrl, earningPoolsPreviewUrl, checkCrowdloanUrl, crowdloanResultUrl, offRampLoading];
 
 export const MainWrapper = styled('div')<ThemeProps>(({ theme: { token } }: ThemeProps) => ({
   display: 'flex',
@@ -100,6 +105,19 @@ interface RootLocationState {
   useOpenModal?: string
 }
 
+function getOffRampData (orderId: string, searchParams: URLSearchParams) {
+  return {
+    orderId,
+    slug: searchParams.get('slug') || '',
+    partnerCustomerId: searchParams.get('partnerCustomerId') || '',
+    cryptoCurrency: searchParams.get('cryptoCurrency') || '',
+    cryptoAmount: searchParams.get('cryptoAmount') || '',
+    numericCryptoAmount: parseFloat(searchParams.get('cryptoAmount') || '0'),
+    walletAddress: searchParams.get('walletAddress') || '',
+    network: searchParams.get('network') || ''
+  };
+}
+
 function DefaultRoute ({ children }: {children: React.ReactNode}): React.ReactElement {
   const { loadingInject } = useContext(InjectContext);
   const dataContext = useContext(DataContext);
@@ -108,8 +126,13 @@ function DefaultRoute ({ children }: {children: React.ReactNode}): React.ReactEl
   const notify = useNotification();
   const [rootLoading, setRootLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
+
   const initDataRef = useRef<Promise<boolean>>(dataContext.awaitStores(['accountState', 'chainStore', 'assetRegistry', 'requestState', 'settings', 'mantaPay']));
   const firstRender = useRef(true);
+
+  // Pathname query
+  const [, setStorage] = useLocalStorage(OFF_RAMP_DATA, DEFAULT_OFF_RAMP_PARAMS);
+  const [searchParams] = useSearchParams();
 
   useSubscribeLanguage();
 
@@ -121,6 +144,8 @@ function DefaultRoute ({ children }: {children: React.ReactNode}): React.ReactEl
   const [initAccount, setInitAccount] = useState(currentAccount);
   const { isUILocked } = useUILock();
   const needUnlock = isUILocked || (isLocked && unlockType === WalletUnlockType.ALWAYS_REQUIRED);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+  const navigate = useNavigate();
 
   const needMigrate = useMemo(
     () => !!accounts
@@ -129,6 +154,22 @@ function DefaultRoute ({ children }: {children: React.ReactNode}): React.ReactEl
       .length
     , [accounts]
   );
+
+  const offRampParamDetails = useMemo((): OffRampParams | null => {
+    const orderId = searchParams.get('orderId') || '';
+
+    if (orderId) {
+      return getOffRampData(orderId, searchParams);
+    } else {
+      return null;
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (offRampParamDetails && !rootLoading) {
+      setStorage(offRampParamDetails);
+    }
+  }, [offRampParamDetails, rootLoading, setStorage]);
 
   useEffect(() => {
     initDataRef.current.then(() => {
@@ -278,15 +319,31 @@ function DefaultRoute ({ children }: {children: React.ReactNode}): React.ReactEl
     }
   }, [currentAccount, initAccount]);
 
-  if (rootLoading || loadingInject) {
-    return (<></>);
+  const redirectPath = redirectTarget.redirect;
+  const appLoading = rootLoading || loadingInject;
+
+  useEffect(() => {
+    if (!appLoading && redirectPath) {
+      setShouldRedirect(true);
+    } else {
+      setShouldRedirect(false);
+    }
+  }, [appLoading, redirectPath]);
+
+  useEffect(() => {
+    if (shouldRedirect && redirectPath) {
+      navigate(redirectPath);
+    }
+  }, [shouldRedirect, redirectPath, navigate]);
+
+  if (appLoading || redirectPath) {
+    return <></>;
   } else {
-    return (<>
-      {redirectTarget.redirect && <Navigate to={redirectTarget.redirect} />}
+    return (
       <MainWrapper className={CN('main-page-container', `screen-size-${screenContext.screenType}`, { 'web-ui-enable': screenContext.isWebUI })}>
         {children}
       </MainWrapper>
-    </>);
+    );
   }
 }
 
@@ -295,13 +352,15 @@ export function Root (): React.ReactElement {
 
   return (
     <WebUIContextProvider>
-      <WalletModalContext>
-        <DefaultRoute>
-          <BaseWeb>
-            <Outlet />
-          </BaseWeb>
-        </DefaultRoute>
-      </WalletModalContext>
+      <WalletModalContextProvider>
+        <TransactionModalContextProvider>
+          <DefaultRoute>
+            <BaseWeb>
+              <Outlet />
+            </BaseWeb>
+          </DefaultRoute>
+        </TransactionModalContextProvider>
+      </WalletModalContextProvider>
     </WebUIContextProvider>
   );
 }

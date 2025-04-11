@@ -8,19 +8,18 @@ import { EarningRewardItem, YieldPoolType, YieldPositionInfo } from '@subwallet/
 import { AlertModal, BaseModal, EarningInstructionModal, EarningPositionDesktopItem, EarningPositionItem, EmptyList, FilterModal, Layout } from '@subwallet/extension-web-ui/components';
 import { FilterTabsNode } from '@subwallet/extension-web-ui/components/FilterTabsNode';
 import BannerGenerator from '@subwallet/extension-web-ui/components/StaticContent/BannerGenerator';
-import { ASTAR_PORTAL_URL, BN_TEN, CANCEL_UN_STAKE_TRANSACTION, CLAIM_REWARD_TRANSACTION, DEFAULT_CANCEL_UN_STAKE_PARAMS, DEFAULT_CLAIM_REWARD_PARAMS, DEFAULT_EARN_PARAMS, DEFAULT_UN_STAKE_PARAMS, DEFAULT_WITHDRAW_PARAMS, EARN_TRANSACTION, EARNING_INSTRUCTION_MODAL, EARNING_WARNING_ANNOUNCEMENT, TRANSACTION_YIELD_CANCEL_UNSTAKE_MODAL, TRANSACTION_YIELD_CLAIM_MODAL, TRANSACTION_YIELD_UNSTAKE_MODAL, TRANSACTION_YIELD_WITHDRAW_MODAL, UN_STAKE_TRANSACTION, WITHDRAW_TRANSACTION } from '@subwallet/extension-web-ui/constants';
+import { ASTAR_PORTAL_URL, BN_TEN, CANCEL_UN_STAKE_TRANSACTION, CLAIM_REWARD_TRANSACTION, DEFAULT_CANCEL_UN_STAKE_PARAMS, DEFAULT_CLAIM_REWARD_PARAMS, DEFAULT_EARN_PARAMS, DEFAULT_UN_STAKE_PARAMS, DEFAULT_WITHDRAW_PARAMS, EARN_TRANSACTION, EARNING_INSTRUCTION_MODAL, EARNING_WARNING_ANNOUNCEMENT, TRANSACTION_YIELD_CANCEL_UNSTAKE_MODAL, TRANSACTION_YIELD_UNSTAKE_MODAL, UN_STAKE_TRANSACTION, WITHDRAW_TRANSACTION } from '@subwallet/extension-web-ui/constants';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
+import { TransactionModalContext } from '@subwallet/extension-web-ui/contexts/TransactionModalContextProvider';
 import { useAlert, useFilterModal, useGetBannerByScreen, useGetYieldPositionForSpecificAccount, useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
 import { reloadCron } from '@subwallet/extension-web-ui/messaging';
 import EarningPositionBalance from '@subwallet/extension-web-ui/Popup/Home/Earning/EarningEntry/EarningPositions/EarningPositionsBalance';
 import { Toolbar } from '@subwallet/extension-web-ui/Popup/Home/Earning/shared/desktop/Toolbar';
 import Transaction from '@subwallet/extension-web-ui/Popup/Transaction/Transaction';
 import CancelUnstake from '@subwallet/extension-web-ui/Popup/Transaction/variants/CancelUnstake';
-import ClaimReward from '@subwallet/extension-web-ui/Popup/Transaction/variants/ClaimReward';
 import Unbond from '@subwallet/extension-web-ui/Popup/Transaction/variants/Unbond';
-import Withdraw from '@subwallet/extension-web-ui/Popup/Transaction/variants/Withdraw';
 import { EarningEntryView, EarningPositionDetailParam, ExtraYieldPositionInfo, Theme, ThemeProps } from '@subwallet/extension-web-ui/types';
-import { isAccountAll, isRelatedToAstar, openInNewTab } from '@subwallet/extension-web-ui/utils';
+import { getTransactionFromAccountProxyValue, isAccountAll, isRelatedToAstar, openInNewTab } from '@subwallet/extension-web-ui/utils';
 import { Button, ButtonProps, Icon, ModalContext, SwIconProps, SwList } from '@subwallet/react-ui';
 import BigN from 'bignumber.js';
 import CN from 'classnames';
@@ -53,7 +52,6 @@ enum FilterValue {
   LENDING = 'LENDING'
 }
 
-let cacheData: Record<string, boolean> = {};
 const FILTER_MODAL_ID = 'earning-positions-filter-modal';
 const alertModalId = 'earning-positions-alert-modal';
 const instructionModalId = EARNING_INSTRUCTION_MODAL;
@@ -64,12 +62,15 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
   const navigate = useNavigate();
 
   const { activeModal } = useContext(ModalContext);
+  const { claimRewardModal, withdrawModal } = useContext(TransactionModalContext);
 
   const isShowBalance = useSelector((state) => state.settings.isShowBalance);
   const { currencyData, priceMap } = useSelector((state) => state.price);
   const { assetRegistry: assetInfoMap } = useSelector((state) => state.assetRegistry);
   const chainInfoMap = useSelector((state) => state.chainStore.chainInfoMap);
-  const { accounts, currentAccount } = useSelector((state) => state.accountState);
+  const accounts = useSelector((state) => state.accountState.accounts);
+  const isAllAccount = useSelector((state) => state.accountState.isAllAccount);
+  const currentAccountProxy = useSelector((state) => state.accountState.currentAccountProxy);
   const { filterSelectionMap, onApplyFilter, onChangeFilterOption, onCloseFilterModal, selectedFilters } = useFilterModal(FILTER_MODAL_ID);
   const { alertProps, closeAlert, openAlert } = useAlert(alertModalId);
   const poolInfoMap = useSelector((state) => state.earning.poolInfoMap);
@@ -83,7 +84,7 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
   const [, setWithdrawStorage] = useLocalStorage(WITHDRAW_TRANSACTION, DEFAULT_WITHDRAW_PARAMS);
   const [, setCancelUnStakeStorage] = useLocalStorage(CANCEL_UN_STAKE_TRANSACTION, DEFAULT_CANCEL_UN_STAKE_PARAMS);
   const [announcement, setAnnouncement] = useLocalStorage(EARNING_WARNING_ANNOUNCEMENT, 'nonConfirmed');
-  const specificList = useGetYieldPositionForSpecificAccount(currentAccount?.address);
+  const specificList = useGetYieldPositionForSpecificAccount();
 
   const { inactiveModal } = useContext(ModalContext);
 
@@ -166,6 +167,10 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
   }, [assetInfoMap, currencyData, earningPositions, priceMap]);
 
   const chainStakingBoth = useMemo(() => {
+    if (!currentAccountProxy) {
+      return null;
+    }
+
     const chains = ['polkadot', 'kusama'];
 
     const findChainWithStaking = (list: YieldPositionInfo[]) => {
@@ -181,23 +186,25 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
       return null;
     };
 
-    if (currentAccount?.address !== ALL_ACCOUNT_KEY) {
+    if (isAccountAll(currentAccountProxy.id)) {
       return findChainWithStaking(specificList);
     }
 
     for (const acc of accounts) {
-      if (acc.address !== ALL_ACCOUNT_KEY) {
-        const listStaking = specificList.filter((item) => item.address === acc.address);
-        const chain = findChainWithStaking(listStaking);
+      if (isAccountAll(acc.address)) {
+        continue;
+      }
 
-        if (chain) {
-          return chain;
-        }
+      const listStaking = specificList.filter((item) => item.address === acc.address);
+      const chain = findChainWithStaking(listStaking);
+
+      if (chain) {
+        return chain;
       }
     }
 
     return null;
-  }, [accounts, currentAccount?.address, specificList]);
+  }, [accounts, currentAccountProxy, specificList]);
 
   const learnMore = useCallback(() => {
     window.open('https://support.polkadot.network/support/solutions/articles/65000188140-changes-for-nomination-pool-members-and-opengov-participation');
@@ -296,10 +303,6 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
     };
   }, [selectedFilters]);
 
-  const transactionFromValue = useMemo(() => {
-    return currentAccount?.address ? isAccountAll(currentAccount.address) ? '' : currentAccount.address : '';
-  }, [currentAccount?.address]);
-
   const onClickCancelUnStakeButton = useCallback((item: ExtraYieldPositionInfo) => {
     return () => {
       setSelectedPositionInfo(item);
@@ -307,12 +310,12 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
         ...DEFAULT_CANCEL_UN_STAKE_PARAMS,
         slug: item.slug,
         chain: item.chain,
-        from: transactionFromValue
+        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy)
       });
 
       activeModal(TRANSACTION_YIELD_CANCEL_UNSTAKE_MODAL);
     };
-  }, [activeModal, setCancelUnStakeStorage, transactionFromValue]);
+  }, [activeModal, currentAccountProxy, setCancelUnStakeStorage]);
 
   const onClickClaimButton = useCallback((item: ExtraYieldPositionInfo) => {
     return () => {
@@ -329,12 +332,12 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
         ...DEFAULT_CLAIM_REWARD_PARAMS,
         slug: item.slug,
         chain: item.chain,
-        from: transactionFromValue
+        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy)
       });
 
-      activeModal(TRANSACTION_YIELD_CLAIM_MODAL);
+      claimRewardModal.open();
     };
-  }, [activeModal, setClaimRewardStorage, transactionFromValue]);
+  }, [claimRewardModal, currentAccountProxy, setClaimRewardStorage]);
 
   const onClickStakeButton = useCallback((item: ExtraYieldPositionInfo) => {
     return () => {
@@ -343,12 +346,12 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
         ...DEFAULT_EARN_PARAMS,
         slug: item.slug,
         chain: item.chain,
-        from: transactionFromValue
+        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy)
       });
 
       navigate('/transaction/earn');
     };
-  }, [navigate, setEarnStorage, transactionFromValue]);
+  }, [currentAccountProxy, navigate, setEarnStorage]);
 
   const navigateToEarnTransaction = useCallback(
     (slug: string, chain: string) => {
@@ -356,11 +359,11 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
         ...DEFAULT_EARN_PARAMS,
         slug,
         chain,
-        from: transactionFromValue
+        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy)
       });
       navigate('/transaction/earn');
     },
-    [navigate, setEarnStorage, transactionFromValue]
+    [currentAccountProxy, navigate, setEarnStorage]
   );
 
   const onClickUnStakeButton = useCallback((item: ExtraYieldPositionInfo) => {
@@ -370,12 +373,12 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
         ...DEFAULT_UN_STAKE_PARAMS,
         slug: item.slug,
         chain: item.chain,
-        from: transactionFromValue
+        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy)
       });
 
       activeModal(TRANSACTION_YIELD_UNSTAKE_MODAL);
     };
-  }, [activeModal, setUnStakeStorage, transactionFromValue]);
+  }, [activeModal, currentAccountProxy, setUnStakeStorage]);
 
   const onClickInstructionButton = useCallback((item: ExtraYieldPositionInfo) => {
     return () => {
@@ -397,12 +400,12 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
         ...DEFAULT_WITHDRAW_PARAMS,
         slug: item.slug,
         chain: item.chain,
-        from: transactionFromValue
+        fromAccountProxy: getTransactionFromAccountProxyValue(currentAccountProxy)
       });
 
-      activeModal(TRANSACTION_YIELD_WITHDRAW_MODAL);
+      withdrawModal.open();
     };
-  }, [activeModal, onClickUnStakeButton, setWithdrawStorage, transactionFromValue]);
+  }, [currentAccountProxy, onClickUnStakeButton, setWithdrawStorage, withdrawModal]);
 
   const onClickItem = useCallback((item: ExtraYieldPositionInfo) => {
     return () => {
@@ -453,7 +456,7 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
 
     let nominationPoolReward: EarningRewardItem | undefined;
 
-    if (isAccountAll(currentAccount?.address || '')) {
+    if (isAllAccount) {
       nominationPoolReward = {
         state: APIItemState.READY,
         chain: poolInfo.chain,
@@ -491,7 +494,7 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
         unclaimedReward={nominationPoolReward?.unclaimedReward}
       />
     );
-  }, [isWebUI, poolInfoMap, currentAccount?.address, isShowBalance, onClickCancelUnStakeButton, onClickClaimButton, onClickItem, onClickStakeButton, onClickUnStakeButton, onClickWithdrawButton, onClickInstructionButton, earningRewards]);
+  }, [isWebUI, poolInfoMap, isAllAccount, isShowBalance, onClickCancelUnStakeButton, onClickClaimButton, onClickInstructionButton, onClickItem, onClickStakeButton, onClickUnStakeButton, onClickWithdrawButton, earningRewards]);
 
   const emptyList = useCallback(() => {
     return (
@@ -566,21 +569,9 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
     inactiveModal(TRANSACTION_YIELD_UNSTAKE_MODAL);
   }, [inactiveModal]);
 
-  const handleCloseClaim = useCallback(() => {
-    inactiveModal(TRANSACTION_YIELD_CLAIM_MODAL);
-  }, [inactiveModal]);
-
   const handleCloseCancelUnstake = useCallback(() => {
     inactiveModal(TRANSACTION_YIELD_CANCEL_UNSTAKE_MODAL);
   }, [inactiveModal]);
-
-  useEffect(() => {
-    const address = currentAccount?.address || '';
-
-    if (cacheData[address] === undefined) {
-      cacheData = { [address]: !items.length };
-    }
-  }, [items.length, currentAccount]);
 
   const onClickFilterButton = useCallback(
     (e?: SyntheticEvent) => {
@@ -589,9 +580,6 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
     },
     [activeModal]
   );
-  const handleCloseWithdraw = useCallback(() => {
-    inactiveModal(TRANSACTION_YIELD_WITHDRAW_MODAL);
-  }, [inactiveModal]);
 
   const addMore = useCallback(() => {
     setEntryView(EarningEntryView.OPTIONS);
@@ -762,20 +750,6 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
       <BaseModal
         className={'right-side-modal'}
         destroyOnClose={true}
-        id={TRANSACTION_YIELD_CLAIM_MODAL}
-        onCancel={handleCloseClaim}
-        title={t('Claim rewards')}
-      >
-        <Transaction
-          modalContent={isWebUI}
-          modalId={TRANSACTION_YIELD_CLAIM_MODAL}
-        >
-          <ClaimReward />
-        </Transaction>
-      </BaseModal>
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
         id={TRANSACTION_YIELD_CANCEL_UNSTAKE_MODAL}
         onCancel={handleCloseCancelUnstake}
         title={t('Cancel unstake')}
@@ -787,25 +761,10 @@ function Component ({ className, earningPositions, setEntryView, setLoading }: P
           <CancelUnstake />
         </Transaction>
       </BaseModal>
-      <BaseModal
-        className={'right-side-modal'}
-        destroyOnClose={true}
-        id={TRANSACTION_YIELD_WITHDRAW_MODAL}
-        onCancel={handleCloseWithdraw}
-        title={t('Withdraw')}
-      >
-        <Transaction
-          modalContent={isWebUI}
-          modalId={TRANSACTION_YIELD_WITHDRAW_MODAL}
-        >
-          <Withdraw />
-        </Transaction>
-      </BaseModal>
       {
         !!(selectedPositionInfo && poolInfoMap[selectedPositionInfo.slug]) &&
         (
           <EarningInstructionModal
-            address={currentAccount?.address}
             assetRegistry={assetRegistry}
             bypassEarlyValidate={true}
             closeAlert={closeAlert}

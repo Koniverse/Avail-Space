@@ -1,24 +1,24 @@
 // Copyright 2019-2022 @subwallet/extension-web-ui authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
-import { AbstractAddressJson } from '@subwallet/extension-base/background/types';
 import { CHAINS_SUPPORTED_DOMAIN, isAzeroDomain } from '@subwallet/extension-base/koni/api/dotsama/domain';
+import { AbstractAddressJson } from '@subwallet/extension-base/types';
 import { reformatAddress } from '@subwallet/extension-base/utils';
 import { ScreenContext } from '@subwallet/extension-web-ui/contexts/ScreenContext';
 import { useForwardInputRef, useOpenQrScanner, useSelector, useTranslation } from '@subwallet/extension-web-ui/hooks';
 import { resolveAddressToDomain, resolveDomainToAddress, saveRecentAccount } from '@subwallet/extension-web-ui/messaging';
 import { ScannerResult, ThemeProps } from '@subwallet/extension-web-ui/types';
 import { findContactByAddress, toShort } from '@subwallet/extension-web-ui/utils';
+import { decodeAddress, isAddress } from '@subwallet/keyring';
 import { Button, Icon, Input, InputRef, ModalContext, SwQrScanner } from '@subwallet/react-ui';
 import CN from 'classnames';
 import { Book, Scan } from 'phosphor-react';
 import React, { ChangeEventHandler, ForwardedRef, forwardRef, SyntheticEvent, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 
-import { decodeAddress, isAddress, isEthereumAddress } from '@polkadot/util-crypto';
+import { isEthereumAddress } from '@polkadot/util-crypto';
 
 import { Avatar } from '../Avatar';
-import { AddressBookModal } from '../Modal';
 import { QrScannerErrorNotice } from '../Qr';
 import { BasicInputWrapper } from './Base';
 
@@ -146,6 +146,7 @@ function Component (props: Props, ref: ForwardedRef<InputRef>): React.ReactEleme
     activeModal(addressBookId);
   }, [activeModal, addressBookId]);
 
+  // @ts-ignore
   const onSelectAddressBook = useCallback((value: string) => {
     parseAndChangeValue(value);
     // @ts-ignore
@@ -327,18 +328,18 @@ function Component (props: Props, ref: ForwardedRef<InputRef>): React.ReactEleme
           />
         )
       }
-      {
-        showAddressBook &&
-        (
-          <AddressBookModal
-            addressPrefix={addressPrefix}
-            id={addressBookId}
-            networkGenesisHash={networkGenesisHash}
-            onSelect={onSelectAddressBook}
-            value={value}
-          />
-        )
-      }
+      {/* { */}
+      {/*   showAddressBook && */}
+      {/*   ( */}
+      {/*     <AddressBookModal */}
+      {/*       addressPrefix={addressPrefix} */}
+      {/*       id={addressBookId} */}
+      {/*       networkGenesisHash={networkGenesisHash} */}
+      {/*       onSelect={onSelectAddressBook} */}
+      {/*       value={value} */}
+      {/*     /> */}
+      {/*   ) */}
+      {/* } */}
     </>
   );
 }

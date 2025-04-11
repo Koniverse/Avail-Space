@@ -7,7 +7,7 @@ import { reloadCron, saveShowBalance } from '@subwallet/extension-web-ui/messagi
 import { ThemeProps } from '@subwallet/extension-web-ui/types';
 import { Button, Icon, Number, SwNumberProps, Tag, Tooltip } from '@subwallet/react-ui';
 import CN from 'classnames';
-import { ArrowsClockwise, ArrowsLeftRight, CopySimple, Eye, EyeSlash, PaperPlaneTilt, ShoppingCartSimple } from 'phosphor-react';
+import { ArrowsClockwise, ArrowsLeftRight, CopySimple, Eye, EyeSlash, PaperPlaneTilt, PlusMinus } from 'phosphor-react';
 import React, { useCallback, useState } from 'react';
 import styled from 'styled-components';
 
@@ -17,6 +17,8 @@ type Props = ThemeProps & {
   totalChangePercent: SwNumberProps['value'];
   isPriceDecrease: boolean;
   isShrink: boolean;
+  isSupportBuyTokens: boolean;
+  isSupportSwap: boolean;
   onOpenSendFund: () => void;
   onOpenBuyTokens: () => void;
   onOpenReceive: () => void;
@@ -27,6 +29,8 @@ function Component (
   { className = '',
     isPriceDecrease,
     isShrink,
+    isSupportBuyTokens,
+    isSupportSwap,
     onOpenBuyTokens,
     onOpenReceive,
     onOpenSendFund,
@@ -59,7 +63,7 @@ function Component (
           overlayClassName={CN('__currency-value-detail-tooltip', {
             'ant-tooltip-hidden': !isShowBalance
           })}
-          placement={'top'}
+          placement='top'
           title={currencyData.symbol + ' ' + formatNumber(totalValue, 0, balanceNoPrefixFormater)}
         >
           <div
@@ -87,7 +91,7 @@ function Component (
             className='button-change-show-balance'
             icon={(
               <Icon
-                phosphorIcon={ !isShowBalance ? Eye : EyeSlash}
+                phosphorIcon={!isShowBalance ? Eye : EyeSlash}
               />
             )}
             onClick={onChangeShowBalance}
@@ -160,25 +164,29 @@ function Component (
           size={isShrink ? 'xs' : 'sm'}
           tooltip={t('Send tokens')}
         />
-        <div className={'__button-space'} />
+        <div className={'__button-space hidden'} />
         <Button
-          icon={
+          className={CN({ hidden: true })} // not support swap on mobile yet
+          disabled={!isSupportSwap}
+          icon={(
             <Icon
               phosphorIcon={ArrowsLeftRight}
-              size={isShrink ? 'sm' : 'md' }
+              size={isShrink ? 'sm' : 'md'}
               weight={'duotone'}
             />
-          }
+          )}
           onClick={onOpenSwap}
           shape='squircle'
           size={isShrink ? 'xs' : 'sm'}
           tooltip={t('Swap')}
         />
-        <div className={'__button-space'} />
+        <div className={CN('__button-space', { hidden: isShrink })} />
         <Button
+          className={CN({ hidden: isShrink })}
+          disabled={!isSupportBuyTokens}
           icon={
             <Icon
-              phosphorIcon={ShoppingCartSimple}
+              phosphorIcon={PlusMinus}
               size={isShrink ? 'sm' : 'md' }
               weight={'duotone'}
             />
@@ -186,7 +194,7 @@ function Component (
           onClick={onOpenBuyTokens}
           shape='squircle'
           size={isShrink ? 'xs' : 'sm'}
-          tooltip={t('Buy token')}
+          tooltip={t('Buy & sell')}
         />
       </div>
     </div>
