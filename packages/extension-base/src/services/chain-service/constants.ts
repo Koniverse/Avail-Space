@@ -10,6 +10,7 @@ export const API_MAX_RETRY = 2;
 
 export const _AVAIL_APP_CHAINS_WHITELIST: string[] = [
   'avail_mainnet',
+  'sepolia_ethereum',
   'availTuringTest',
   'goldberg_testnet',
   'ethereum',
